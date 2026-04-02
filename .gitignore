@@ -1,0 +1,51 @@
+# Compiled class files
+*.class
+
+# Log files
+*.log
+
+# sbt specific
+target/
+project/target/
+project/project/
+.project
+.classpath
+.cache/
+.history/
+.lib/
+.bsp/
+
+# sbt boot files
+.boot/
+
+# Scala-IDE files
+.scala_dependencies
+.worksheet
+
+# IntelliJ IDEA
+.idea/
+*.iml
+*.ipr
+*.iws
+out/
+
+# VS Code
+.vscode/
+
+# Mac
+.DS_Store
+
+# Windows
+Thumbs.db
+
+# Metals (Scala language server)
+.metals/
+.bloop/
+.ammonite/
+
+# Dependency cache
+coursier/
+.coursier/
+
+# Test reports
+test-reports/
