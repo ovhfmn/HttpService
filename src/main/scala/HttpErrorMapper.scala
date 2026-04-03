@@ -1,6 +1,6 @@
 import cats.effect.IO
 import domain.{Account, DomainError}
-import domain.DomainError.{AccountNotFound, InsufficientFunds, InvalidAmount}
+import domain.DomainError.{AccountAlreadyExists, AccountNotFound, InsufficientFunds, InvalidAmount}
 import org.http4s.*
 import org.http4s.dsl.io.*
 
@@ -10,6 +10,7 @@ object HttpErrorMapper {
       case AccountNotFound => NotFound("Account not found")
       case InsufficientFunds => BadRequest("Insufficient funds")
       case InvalidAmount => BadRequest("Invalid amount")
+      case AccountAlreadyExists => Conflict("Account already exists")
     }
     
   def handleResult(result: Either[DomainError, Account]): IO[Response[IO]] =

@@ -1,3 +1,4 @@
+import cats.data.EitherT
 import cats.effect.IO
 import domain.*
 import io.circe.generic.auto.*
@@ -9,22 +10,20 @@ import org.http4s.circe.CirceEntityCodec.*
 class AccountRoutes(service: LiveAccountService) {
   val routes: HttpRoutes[IO] = HttpRoutes.of[IO] {
     case req @ POST -> Root / "accounts" / id / "debit" =>
-      for {
-        debitReq <- req.as[DebitRequest]
-        accountId <- IO.fromEither(AccountId.from(id).left.map(new RuntimeException(_)))
-        money <- IO.fromEither(Money.from(debitReq.amount).left.map(new RuntimeException(_)))
+      (for {
+        body <- EitherT.liftF(req.as[DebitRequest])
+        accountId <- EitherT.fromEither[IO](AccountId.from(id).left.map(_ => DomainError.InvalidAmount))
+        money <- EitherT.fromEither[IO](Money.from(body.amount).left.map(_ => DomainError.InvalidAmount))
         result <- service.debit(accountId, money)
-        response <- toHttp(result)
-      } yield response
+      } yield result).value.flatMap(toHttp)
 
     case req @ POST -> Root / "accounts" =>
-      for {
-        body <- req.as[CreateAccountRequest]
-        accountId <- IO.fromEither(AccountId.from(body.id).left.map(new RuntimeException(_)))
-        balance <- IO.fromEither(Balance.from(body.initialBalance).left.map(new RuntimeException(_)))
+      (for {
+        body <- EitherT.liftF(req.as[CreateAccountRequest])
+        accountId <- EitherT.fromEither[IO](AccountId.from(body.id).left.map(_ => DomainError.InvalidAmount))
+        balance <- EitherT.fromEither[IO](Balance.from(body.initialBalance).left.map(_ => DomainError.InvalidAmount))
         result <- service.create(accountId, balance)
-        response <-toHttp(result)
-      } yield response
+        } yield result).value.flatMap(toHttp)
   }
 
   def toHttp(result: Either[DomainError, Account]): IO[Response[IO]] =

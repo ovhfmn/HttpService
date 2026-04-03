@@ -1,6 +1,6 @@
+import cats.data.EitherT
 import cats.effect.IO
 import domain.AccountId.AccountId
-import domain.DomainError.InvalidAmount
 
 object domain {
 
@@ -10,6 +10,9 @@ object domain {
     def from(value: String): Either[String, AccountId] =
       if (value.trim.isEmpty) Left("AccountId cannot be empty")
       else Right(value)
+
+    extension (id: AccountId)
+      def value: String = id
   }
 
   opaque type Money = BigDecimal
@@ -42,6 +45,8 @@ object domain {
         else Right(result)
 
       def lessThen(m: Money): Boolean = b < m
+
+      def value: BigDecimal = b
   }
 
   final case class Account(
@@ -67,40 +72,48 @@ object domain {
 
   class LiveAccountService(repo: AccountRepository) {
 
-    def create(id: AccountId, balance: Balance): IO[Either[DomainError, Account]] =
-      repo.find(id).flatMap {
-        case Some(_) => IO.pure(Left(InvalidAmount))
-        case None =>
-          val account = Account(id, balance)
-          repo.create(account).as(Right(account))
-      }
+    def create(id: AccountId, balance: Balance): EitherT[IO, DomainError, Account] =
+      for {
+        existing <- EitherT.liftF(repo.find(id))
 
-    def debit(id: AccountId, amount: Money): IO[Either[DomainError, Account]] =
-      repo.find(id).flatMap {
-        case None =>
-          IO.pure(Left(DomainError.AccountNotFound))
-        case Some(account) =>
-          AccountService.debit(account, amount) match {
-            case Left(err) => IO.pure(Left(err))
-            case Right(updated) =>
-              repo.update(updated).as(Right(updated))
-          }
-      }
+        _ <- EitherT.cond[IO](
+          existing.isEmpty,
+          (),
+          DomainError.AccountAlreadyExists
+        )
 
-    def credit(id: AccountId, amount: Money): IO[Either[DomainError, Account]] =
-      repo.find(id).flatMap {
-        case None =>
-          IO.pure(Left(DomainError.AccountNotFound))
+        account = Account(id, balance)
 
-        case Some(account) =>
-          AccountService.credit(account, amount) match {
-            case Left(err) =>
-              IO.pure(Left(err))
+        _ <- EitherT.liftF(repo.create(account))
+      } yield account
 
-            case Right(updated) =>
-              repo.update(updated).as(Right(updated))
-          }
-      }
+    def debit(id: AccountId, amount: Money): EitherT[IO, DomainError, Account] =
+      for {
+        account <- EitherT.fromOptionF(
+          repo.find(id),
+          DomainError.AccountNotFound
+        )
+
+        updated <- EitherT.fromEither(
+          AccountService.debit(account, amount)
+        )
+
+        _ <- EitherT.liftF(repo.update(updated))
+      } yield updated
+
+    def credit(id: AccountId, amount: Money): EitherT[IO, DomainError, Account] =
+      for {
+        account <- EitherT.fromOptionF(
+          repo.find(id),
+          DomainError.AccountNotFound
+        )
+
+        updated <- EitherT.fromEither(
+          AccountService.credit(account, amount)
+        )
+
+        _ <- EitherT.liftF(repo.update(updated))
+      } yield updated
   }
 
   sealed trait DomainError
@@ -110,5 +123,7 @@ object domain {
     case object InsufficientFunds extends DomainError
 
     case object InvalidAmount extends DomainError
+
+    case object AccountAlreadyExists extends DomainError
   }
 }

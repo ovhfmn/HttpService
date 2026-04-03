@@ -20,7 +20,6 @@ object Main extends IOApp.Simple {
   val program: IO[Unit] =
     for {
       ref <- Ref.of[IO, Map[AccountId, Account]](Map.empty)
-
       repo = new InMemoryAccountRepository(ref)
       service = new LiveAccountService(repo)
       routes = new AccountRoutes(service).routes
