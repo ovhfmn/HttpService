@@ -74,6 +74,8 @@ object domain {
 
     def create(id: AccountId, balance: Balance): EitherT[IO, DomainError, Account] =
       for {
+        _ <- EitherT.liftF(IO.println(s"[CREATE] id=$id amount=$balance"))
+
         existing <- EitherT.liftF(repo.find(id))
 
         _ <- EitherT.cond[IO](
@@ -85,10 +87,13 @@ object domain {
         account = Account(id, balance)
 
         _ <- EitherT.liftF(repo.create(account))
+        _ <- EitherT.liftF(IO.println(s"[CREATE] account=$account"))
       } yield account
 
     def debit(id: AccountId, amount: Money): EitherT[IO, DomainError, Account] =
       for {
+        _ <- EitherT.liftF(IO.println(s"[DEBIT] id=$id amount=$amount"))
+
         account <- EitherT.fromOptionF(
           repo.find(id),
           DomainError.AccountNotFound
@@ -99,10 +104,13 @@ object domain {
         )
 
         _ <- EitherT.liftF(repo.update(updated))
+        _ <- EitherT.liftF(IO.println(s"[DEBIT] updated=$updated"))
       } yield updated
 
     def credit(id: AccountId, amount: Money): EitherT[IO, DomainError, Account] =
       for {
+        _ <- EitherT.liftF(IO.println(s"[CREADIT] id=$id amount=$amount"))
+
         account <- EitherT.fromOptionF(
           repo.find(id),
           DomainError.AccountNotFound
@@ -113,6 +121,7 @@ object domain {
         )
 
         _ <- EitherT.liftF(repo.update(updated))
+        _ <- EitherT.liftF(IO.println(s"[CREDIT] updated=$updated"))
       } yield updated
   }
 

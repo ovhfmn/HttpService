@@ -7,6 +7,7 @@ import org.http4s.dsl.io.*
 import org.http4s.ember.server.EmberServerBuilder
 import org.http4s.server.Router
 import cats.syntax.semigroupk.*
+import org.http4s.server.middleware.Logger
 
 object Main extends IOApp.Simple {
 
@@ -24,7 +25,9 @@ object Main extends IOApp.Simple {
       service = new LiveAccountService(repo)
       routes = new AccountRoutes(service).routes
         <+> healthRoutes
-      httpApp = Router("/" -> routes).orNotFound
+      httpApp = Logger.httpApp(
+        logHeaders = true,
+        logBody = true)(Router("/" -> routes).orNotFound)
       _ <- EmberServerBuilder
         .default[IO]
         .withHost(host"0.0.0.0")
