@@ -22,6 +22,26 @@ class AccountServiceSpec extends CatsEffectSuite {
     }
   }
 
+  test("debit reduces balance") {
+    for {
+      ref <- Ref.of[IO, Map[AccountId, Account]](Map.empty)
+
+      repo = new InMemoryAccountRepository(ref)
+      service = new LiveAccountService(repo)
+
+      id = AccountId.from("account_2").toOption.get
+      balance = Balance.from(BigDecimal(100)).toOption.get
+      account = Account(id, balance)
+
+      amount = Money.from(BigDecimal(10)).toOption.get
+
+      result = AccountService.debit(account, amount)
+
+    } yield {
+      assertEquals(result.map(_.balance.value), Right(BigDecimal(90)))
+    }
+  }
+
   test("account w/ the same id should not be created twice") {
     for {
       ref <- Ref.of[IO, Map[AccountId, Account]](Map.empty)
