@@ -1,12 +1,14 @@
-import org.typelevel.log4cats.slf4j.Slf4jLogger
+package com.httpService.http
+
 import cats.effect.IO
-import domain.{Account, DomainError}
-import domain.DomainError.{AccountAlreadyExists, AccountNotFound, InsufficientFunds, InvalidAmount}
-import org.http4s.*
-import org.http4s.dsl.io.*
-import org.http4s.circe.CirceEntityCodec.*
+import com.httpService.domain.domain.{Account, DomainError}
+import com.httpService.domain.domain.DomainError.{AccountAlreadyExists, AccountNotFound, InsufficientFunds, InvalidAmount}
 import io.circe.generic.auto.*
+import org.http4s.*
+import org.http4s.circe.CirceEntityCodec.*
+import org.http4s.dsl.io.*
 import org.typelevel.log4cats.SelfAwareStructuredLogger
+import org.typelevel.log4cats.slf4j.Slf4jLogger
 
 object HttpErrorMapper {
   

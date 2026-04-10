@@ -1,4 +1,4 @@
-import domain.{Account, AccountId, AccountService, Balance, Money}
+import com.httpService.domain.domain.{Account, AccountId, AccountService, Balance, Money}
 import munit.CatsEffectSuite
 
 class AccountDomainSpec extends CatsEffectSuite {

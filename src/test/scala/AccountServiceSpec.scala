@@ -1,8 +1,9 @@
 import cats.effect.IO
 import cats.effect.kernel.Ref
-import domain.*
-import domain.AccountId.AccountId
-import domain.DomainError.{AccountAlreadyExists, InsufficientFunds}
+import com.httpService.repository.InMemoryAccountRepository
+import com.httpService.domain.domain.*
+import com.httpService.domain.domain.AccountId.AccountId
+import com.httpService.domain.domain.DomainError.{AccountAlreadyExists, InsufficientFunds}
 import munit.CatsEffectSuite
 
 class AccountServiceSpec extends CatsEffectSuite {

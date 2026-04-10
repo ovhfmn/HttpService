@@ -1,4 +1,6 @@
-import domain.{Account, Balance}
+package com.httpService.http
+
+import com.httpService.domain.domain.Account
 
 final case class AccountResponse(
                                   id: String,

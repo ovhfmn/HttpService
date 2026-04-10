@@ -1,8 +1,11 @@
-import org.typelevel.log4cats.slf4j.Slf4jLogger
+package com.httpService.domain
+
 import cats.data.EitherT
 import cats.effect.IO
-import domain.AccountId.AccountId
+import com.httpService.domain.domain.AccountId.AccountId
+import com.httpService.repository.AccountRepository
 import org.typelevel.log4cats.SelfAwareStructuredLogger
+import org.typelevel.log4cats.slf4j.Slf4jLogger
 
 object domain {
 

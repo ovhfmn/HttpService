@@ -1,12 +1,18 @@
+package com.httpService.root
+
+import cats.effect.kernel.Ref.ApplyBuilders
 import cats.effect.{IO, IOApp, Ref, Resource}
+import cats.syntax.semigroupk.*
 import com.comcast.ip4s.{host, port}
-import domain.*
-import domain.AccountId.AccountId
+import com.httpService.app.AppBuilder
+import com.httpService.domain.domain.{Account, LiveAccountService}
+import com.httpService.domain.domain.AccountId.AccountId
+import com.httpService.http.AccountRoutes
+import com.httpService.repository.InMemoryAccountRepository
 import org.http4s.HttpRoutes
 import org.http4s.dsl.io.*
 import org.http4s.ember.server.EmberServerBuilder
 import org.http4s.server.Router
-import cats.syntax.semigroupk.*
 import org.http4s.server.middleware.Logger
 
 object Main extends IOApp.Simple {
@@ -28,6 +34,7 @@ object Main extends IOApp.Simple {
       httpApp = Logger.httpApp(
         logHeaders = true,
         logBody = true)(Router("/" -> routes).orNotFound)
+//      httpApp <- AppBuilder.build
       _ <- EmberServerBuilder
         .default[IO]
         .withHost(host"0.0.0.0")

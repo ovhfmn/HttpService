@@ -1,11 +1,13 @@
+package com.httpService.http
+
 import cats.data.EitherT
 import cats.effect.IO
-import domain.*
+import com.httpService.domain.domain.{Account, AccountId, Balance, DomainError, LiveAccountService, Money}
 import io.circe.generic.auto.*
 import org.http4s.*
 import org.http4s.circe.*
-import org.http4s.dsl.io.*
 import org.http4s.circe.CirceEntityCodec.*
+import org.http4s.dsl.io.*
 
 class AccountRoutes(service: LiveAccountService) {
   val routes: HttpRoutes[IO] = HttpRoutes.of[IO] {

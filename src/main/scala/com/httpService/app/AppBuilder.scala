@@ -1,7 +1,11 @@
+package com.httpService.app
+
 import cats.effect.IO
 import cats.effect.kernel.Ref
-import domain.AccountId.AccountId
-import domain.{Account, LiveAccountService}
+import com.httpService.domain.domain.{Account, LiveAccountService}
+import com.httpService.domain.domain.AccountId.AccountId
+import com.httpService.http.AccountRoutes
+import com.httpService.repository.InMemoryAccountRepository
 import org.http4s.HttpApp
 
 object AppBuilder {
