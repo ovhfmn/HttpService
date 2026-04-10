@@ -1,9 +1,13 @@
+import org.typelevel.log4cats.slf4j.Slf4jLogger
 import cats.data.EitherT
 import cats.effect.IO
 import domain.AccountId.AccountId
+import org.typelevel.log4cats.SelfAwareStructuredLogger
 
 object domain {
 
+  val logger: SelfAwareStructuredLogger[IO] = Slf4jLogger.getLogger[IO]
+  
   object AccountId {
     opaque type AccountId = String
 
@@ -74,7 +78,7 @@ object domain {
 
     def create(id: AccountId, balance: Balance): EitherT[IO, DomainError, Account] =
       for {
-        _ <- EitherT.liftF(IO.println(s"[CREATE] id=$id amount=$balance"))
+        _ <- EitherT.liftF(logger.info(s"[CREATE] id=$id amount=$balance"))
 
         existing <- EitherT.liftF(repo.find(id))
 
@@ -87,12 +91,12 @@ object domain {
         account = Account(id, balance)
 
         _ <- EitherT.liftF(repo.create(account))
-        _ <- EitherT.liftF(IO.println(s"[CREATE] account=$account"))
+        _ <- EitherT.liftF(logger.info(s"[CREATE] account=$account"))
       } yield account
 
     def debit(id: AccountId, amount: Money): EitherT[IO, DomainError, Account] =
       for {
-        _ <- EitherT.liftF(IO.println(s"[DEBIT] id=$id amount=$amount"))
+        _ <- EitherT.liftF(logger.info(s"[DEBIT] id=$id amount=$amount"))
 
         account <- EitherT.fromOptionF(
           repo.find(id),
@@ -104,12 +108,12 @@ object domain {
         )
 
         _ <- EitherT.liftF(repo.update(updated))
-        _ <- EitherT.liftF(IO.println(s"[DEBIT] updated=$updated"))
+        _ <- EitherT.liftF(logger.info(s"[DEBIT] updated=$updated"))
       } yield updated
 
     def credit(id: AccountId, amount: Money): EitherT[IO, DomainError, Account] =
       for {
-        _ <- EitherT.liftF(IO.println(s"[CREADIT] id=$id amount=$amount"))
+        _ <- EitherT.liftF(logger.info(s"[CREADIT] id=$id amount=$amount"))
 
         account <- EitherT.fromOptionF(
           repo.find(id),
@@ -121,7 +125,7 @@ object domain {
         )
 
         _ <- EitherT.liftF(repo.update(updated))
-        _ <- EitherT.liftF(IO.println(s"[CREDIT] updated=$updated"))
+        _ <- EitherT.liftF(logger.info(s"[CREDIT] updated=$updated"))
       } yield updated
   }
 

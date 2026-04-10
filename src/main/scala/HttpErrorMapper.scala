@@ -1,3 +1,4 @@
+import org.typelevel.log4cats.slf4j.Slf4jLogger
 import cats.effect.IO
 import domain.{Account, DomainError}
 import domain.DomainError.{AccountAlreadyExists, AccountNotFound, InsufficientFunds, InvalidAmount}
@@ -5,10 +6,14 @@ import org.http4s.*
 import org.http4s.dsl.io.*
 import org.http4s.circe.CirceEntityCodec.*
 import io.circe.generic.auto.*
+import org.typelevel.log4cats.SelfAwareStructuredLogger
 
 object HttpErrorMapper {
+  
+  val logger: SelfAwareStructuredLogger[IO] = Slf4jLogger.getLogger[IO]
+  
   def toResponse(error: DomainError): IO[Response[IO]] =
-    IO.println(s"[ERROR] $error") *> (
+    logger.info(s"[ERROR] $error") *> (
       error match {
         case AccountNotFound => NotFound(ErrorResponse(
           error = "AccountNotFound", message = "Account does not exist"))

@@ -2,6 +2,7 @@ import cats.effect.IO
 import cats.effect.kernel.Ref
 import domain.*
 import domain.AccountId.AccountId
+import domain.DomainError.{AccountAlreadyExists, InsufficientFunds}
 import munit.CatsEffectSuite
 
 class AccountServiceSpec extends CatsEffectSuite {
@@ -21,6 +22,8 @@ class AccountServiceSpec extends CatsEffectSuite {
       assertEquals(account.isRight, true)
     }
   }
+
+  test("credit increases balance") {}
 
   test("debit reduces balance") {
     for {
@@ -42,6 +45,26 @@ class AccountServiceSpec extends CatsEffectSuite {
     }
   }
 
+  test("debit fails if insufficient funds") {
+    for {
+      ref <- Ref.of[IO, Map[AccountId, Account]](Map.empty)
+
+      repo = new InMemoryAccountRepository(ref)
+      service = new LiveAccountService(repo)
+
+      id = AccountId.from("account_3").toOption.get
+      balance = Balance.from(BigDecimal(50)).toOption.get
+      account = Account(id, balance)
+
+      amount = Money.from(BigDecimal(100)).toOption.get
+
+      result = AccountService.debit(account, amount)
+
+    } yield {
+      assertEquals(result, Left(InsufficientFunds))
+    }
+  }
+
   test("account w/ the same id should not be created twice") {
     for {
       ref <- Ref.of[IO, Map[AccountId, Account]](Map.empty)
@@ -56,7 +79,7 @@ class AccountServiceSpec extends CatsEffectSuite {
       second <- service.create(id, balance).value
     } yield {
       assertEquals(first.isRight, true)
-      assertEquals(second, Left(DomainError.AccountAlreadyExists))
+      assertEquals(second, Left(AccountAlreadyExists))
     }
   }
 }

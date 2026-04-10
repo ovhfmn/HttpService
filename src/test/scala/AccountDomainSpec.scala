@@ -1,4 +1,4 @@
-import domain.*
+import domain.{Account, AccountId, AccountService, Balance, Money}
 import munit.CatsEffectSuite
 
 class AccountDomainSpec extends CatsEffectSuite {
@@ -28,4 +28,8 @@ class AccountDomainSpec extends CatsEffectSuite {
       Right(BigDecimal(0))
     )
   }
+
+  test("money addition works") {}
+  test("money subtraction works") {}
+  test("balance subtraction fails when negative") {}
 }
