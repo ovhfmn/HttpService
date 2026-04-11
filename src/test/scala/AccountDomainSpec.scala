@@ -21,7 +21,7 @@ class AccountDomainSpec extends CatsEffectSuite {
 
     val amount = Money.from(BigDecimal(50)).toOption.get
 
-    val result = AccountService.debit(account, amount)
+    val result = AccountService.debit(account, BigDecimal(50))
 
     assertEquals(
       result.map(_.balance.value),

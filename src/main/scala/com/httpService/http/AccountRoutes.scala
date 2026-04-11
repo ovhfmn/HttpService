@@ -2,7 +2,8 @@ package com.httpService.http
 
 import cats.data.EitherT
 import cats.effect.IO
-import com.httpService.domain.domain.{Account, AccountId, Balance, DomainError, LiveAccountService, Money}
+import com.httpService.domain.domain.{Account, AccountId, Balance, DomainError, Money}
+import com.httpService.service.LiveAccountService
 import io.circe.generic.auto.*
 import org.http4s.*
 import org.http4s.circe.*
@@ -14,17 +15,13 @@ class AccountRoutes(service: LiveAccountService) {
     case req @ POST -> Root / "accounts" / id / "debit" =>
       (for {
         body <- EitherT.liftF(req.as[DebitRequest])
-        accountId <- EitherT.fromEither[IO](AccountId.from(id).left.map(_ => DomainError.InvalidAmount))
-        money <- EitherT.fromEither[IO](Money.from(body.amount).left.map(_ => DomainError.InvalidAmount))
-        result <- service.debit(accountId, money)
+        result <- service.debit(id, body.amount)
       } yield result).value.flatMap(toHttp)
 
     case req @ POST -> Root / "accounts" =>
       (for {
         body <- EitherT.liftF(req.as[CreateAccountRequest])
-        accountId <- EitherT.fromEither[IO](AccountId.from(body.id).left.map(_ => DomainError.InvalidAmount))
-        balance <- EitherT.fromEither[IO](Balance.from(body.initialBalance).left.map(_ => DomainError.InvalidAmount))
-        result <- service.create(accountId, balance)
+        result <- service.create(body.id, body.balance)
         } yield result).value.flatMap(toHttp)
   }
 

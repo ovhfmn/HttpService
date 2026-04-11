@@ -5,10 +5,11 @@ import cats.effect.{IO, IOApp, Ref, Resource}
 import cats.syntax.semigroupk.*
 import com.comcast.ip4s.{host, port}
 import com.httpService.app.AppBuilder
-import com.httpService.domain.domain.{Account, LiveAccountService}
+import com.httpService.domain.domain.{Account}
 import com.httpService.domain.domain.AccountId.AccountId
 import com.httpService.http.AccountRoutes
 import com.httpService.repository.InMemoryAccountRepository
+import com.httpService.service.LiveAccountService
 import org.http4s.HttpRoutes
 import org.http4s.dsl.io.*
 import org.http4s.ember.server.EmberServerBuilder

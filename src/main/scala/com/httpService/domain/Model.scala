@@ -1,16 +1,10 @@
 package com.httpService.domain
 
-import cats.data.EitherT
-import cats.effect.IO
 import com.httpService.domain.domain.AccountId.AccountId
 import com.httpService.repository.AccountRepository
-import org.typelevel.log4cats.SelfAwareStructuredLogger
-import org.typelevel.log4cats.slf4j.Slf4jLogger
 
 object domain {
 
-  val logger: SelfAwareStructuredLogger[IO] = Slf4jLogger.getLogger[IO]
-  
   object AccountId {
     opaque type AccountId = String
 
@@ -77,60 +71,6 @@ object domain {
         Right(account.copy(balance = account.balance add amount))
   }
 
-  class LiveAccountService(repo: AccountRepository) {
-
-    def create(id: AccountId, balance: Balance): EitherT[IO, DomainError, Account] =
-      for {
-        _ <- EitherT.liftF(logger.info(s"[CREATE] id=$id amount=$balance"))
-
-        existing <- EitherT.liftF(repo.find(id))
-
-        _ <- EitherT.cond[IO](
-          existing.isEmpty,
-          (),
-          DomainError.AccountAlreadyExists
-        )
-
-        account = Account(id, balance)
-
-        _ <- EitherT.liftF(repo.create(account))
-        _ <- EitherT.liftF(logger.info(s"[CREATE] account=$account"))
-      } yield account
-
-    def debit(id: AccountId, amount: Money): EitherT[IO, DomainError, Account] =
-      for {
-        _ <- EitherT.liftF(logger.info(s"[DEBIT] id=$id amount=$amount"))
-
-        account <- EitherT.fromOptionF(
-          repo.find(id),
-          DomainError.AccountNotFound
-        )
-
-        updated <- EitherT.fromEither(
-          AccountService.debit(account, amount)
-        )
-
-        _ <- EitherT.liftF(repo.update(updated))
-        _ <- EitherT.liftF(logger.info(s"[DEBIT] updated=$updated"))
-      } yield updated
-
-    def credit(id: AccountId, amount: Money): EitherT[IO, DomainError, Account] =
-      for {
-        _ <- EitherT.liftF(logger.info(s"[CREADIT] id=$id amount=$amount"))
-
-        account <- EitherT.fromOptionF(
-          repo.find(id),
-          DomainError.AccountNotFound
-        )
-
-        updated <- EitherT.fromEither(
-          AccountService.credit(account, amount)
-        )
-
-        _ <- EitherT.liftF(repo.update(updated))
-        _ <- EitherT.liftF(logger.info(s"[CREDIT] updated=$updated"))
-      } yield updated
-  }
 
   sealed trait DomainError
   object DomainError {

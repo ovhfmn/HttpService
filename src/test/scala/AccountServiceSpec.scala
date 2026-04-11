@@ -4,6 +4,7 @@ import com.httpService.repository.InMemoryAccountRepository
 import com.httpService.domain.domain.*
 import com.httpService.domain.domain.AccountId.AccountId
 import com.httpService.domain.domain.DomainError.{AccountAlreadyExists, InsufficientFunds}
+import com.httpService.service.LiveAccountService
 import munit.CatsEffectSuite
 
 class AccountServiceSpec extends CatsEffectSuite {
@@ -15,10 +16,10 @@ class AccountServiceSpec extends CatsEffectSuite {
       repo = new InMemoryAccountRepository(ref)
       service = new LiveAccountService(repo)
 
-      id = AccountId.from("account_1").toOption.get
-      balance = Balance.from(BigDecimal(0)).toOption.get
+//      id = AccountId.from("account_1").toOption.get
+//      balance = Balance.from(BigDecimal(0)).toOption.get
 
-      account <- service.create(id, balance).value
+      account <- service.create("account_1", BigDecimal(0)).value
     } yield {
       assertEquals(account.isRight, true)
     }
@@ -37,9 +38,9 @@ class AccountServiceSpec extends CatsEffectSuite {
       balance = Balance.from(BigDecimal(100)).toOption.get
       account = Account(id, balance)
 
-      amount = Money.from(BigDecimal(10)).toOption.get
+//      amount = Money.from(BigDecimal(10)).toOption.get
 
-      result = AccountService.debit(account, amount)
+      result = AccountService.debit(account, BigDecimal(10))
 
     } yield {
       assertEquals(result.map(_.balance.value), Right(BigDecimal(90)))
@@ -57,9 +58,9 @@ class AccountServiceSpec extends CatsEffectSuite {
       balance = Balance.from(BigDecimal(50)).toOption.get
       account = Account(id, balance)
 
-      amount = Money.from(BigDecimal(100)).toOption.get
+//      amount = Money.from(BigDecimal(100)).toOption.get
 
-      result = AccountService.debit(account, amount)
+      result = AccountService.debit(account, BigDecimal(100))
 
     } yield {
       assertEquals(result, Left(InsufficientFunds))
@@ -74,10 +75,10 @@ class AccountServiceSpec extends CatsEffectSuite {
       service = new LiveAccountService(repo)
 
       id = AccountId.from("account_1").toOption.get
-      balance = Balance.from(BigDecimal(100)).toOption.get
+//      balance = Balance.from(BigDecimal(100)).toOption.get
 
-      first <- service.create(id, balance).value
-      second <- service.create(id, balance).value
+      first <- service.create("account_1", BigDecimal(100)).value
+      second <- service.create("account_1", BigDecimal(100)).value
     } yield {
       assertEquals(first.isRight, true)
       assertEquals(second, Left(AccountAlreadyExists))

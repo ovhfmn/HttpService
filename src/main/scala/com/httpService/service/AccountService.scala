@@ -20,19 +20,19 @@ class LiveAccountService(private val repo: AccountRepository) {
         AccountId.from(id).left.map(_ => DomainError.InvalidAmount)
       )
 
-      balance <- EitherT.fromEither[IO](
+      validatedBalance <- EitherT.fromEither[IO](
         Balance.from(balance).left.map(_ => DomainError.InvalidAmount)
       )
 
-//      existing <- EitherT.liftF(repo.find(id))
+      existing <- EitherT.liftF(repo.find(accountId))
 
-//      _ <- EitherT.cond[IO](
-//        existing.isEmpty,
-//        (),
-//        DomainError.AccountAlreadyExists
-//      )
+      _ <- EitherT.cond[IO](
+        existing.isEmpty,
+        (),
+        DomainError.AccountAlreadyExists
+      )
 
-      account = Account(accountId, balance)
+      account = Account(accountId, validatedBalance)
 
       _ <- EitherT.liftF(repo.create(account))
       _ <- EitherT.liftF(logger.info(s"[CREATE] account=$account"))
@@ -46,13 +46,17 @@ class LiveAccountService(private val repo: AccountRepository) {
         AccountId.from(id).left.map(_ => DomainError.InvalidAmount)
       )
 
+      money <- EitherT.fromEither[IO](
+        Money.from(amount).left.map(_ => DomainError.InvalidAmount)
+      )
+
       account <- EitherT.fromOptionF(
         repo.find(accountId),
         DomainError.AccountNotFound
       )
 
       updated <- EitherT.fromEither(
-        AccountService.debit(account, amount)
+        AccountService.debit(account, money)
       )
 
       _ <- EitherT.liftF(repo.update(updated))
@@ -67,13 +71,17 @@ class LiveAccountService(private val repo: AccountRepository) {
         AccountId.from(id).left.map(_ => DomainError.InvalidAmount)
       )
 
+      money <- EitherT.fromEither[IO](
+        Money.from(amount).left.map(_ => DomainError.InvalidAmount)
+      )
+
       account <- EitherT.fromOptionF(
         repo.find(accountId),
         DomainError.AccountNotFound
       )
 
       updated <- EitherT.fromEither(
-        AccountService.credit(account, amount)
+        AccountService.credit(account, money)
       )
 
       _ <- EitherT.liftF(repo.update(updated))
