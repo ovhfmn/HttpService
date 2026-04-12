@@ -18,6 +18,14 @@ lazy val root = (project in file("."))
       // json
       "io.circe" %% "circe-generic" % "0.14.7",
 
+      // Doobie
+      "org.tpolecat" %% "doobie-core" % "1.0.0-RC4",
+      "org.tpolecat" %% "doobie-postgres" % "1.0.0-RC4",
+      "org.tpolecat" %% "doobie-hikari" % "1.0.0-RC4",
+
+      // Postgres driver
+      "org.postgresql" % "postgresql" % "42.7.3",
+
       // logging
       "org.typelevel" %% "log4cats-slf4j" % "2.6.0",
 
