@@ -2,15 +2,15 @@ package com.httpService.http
 
 import cats.data.EitherT
 import cats.effect.IO
-import com.httpService.domain.domain.{Account, AccountId, Balance, DomainError, Money}
-import com.httpService.service.LiveAccountService
+import com.httpService.domain.domain.{Account, DomainError}
+import com.httpService.service.AccountService
 import io.circe.generic.auto.*
 import org.http4s.*
 import org.http4s.circe.*
 import org.http4s.circe.CirceEntityCodec.*
 import org.http4s.dsl.io.*
 
-class AccountRoutes(service: LiveAccountService) {
+class AccountRoutes(service: AccountService) {
   val routes: HttpRoutes[IO] = HttpRoutes.of[IO] {
     case req @ POST -> Root / "accounts" / id / "debit" =>
       (for {
