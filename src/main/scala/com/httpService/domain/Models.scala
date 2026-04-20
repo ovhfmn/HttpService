@@ -55,23 +55,6 @@ object domain {
                             balance: Balance
                           )
 
-  object AccountService {
-    import domain.Balance.*
-
-    def debit(account: Account, amount: Money): Either[DomainError, Account] =
-      if (account.balance < amount)
-        Left(DomainError.InsufficientFunds)
-      else
-      account.balance subtract amount match
-        case Left(_) => Left(DomainError.InsufficientFunds)
-        case Right(newBalance) =>
-          Right(account.copy(balance = newBalance))
-
-    def credit(account: Account, amount: Money): Either[DomainError, Account] =
-        Right(account.copy(balance = account.balance add amount))
-  }
-
-
   sealed trait DomainError
   object DomainError {
     case object AccountNotFound extends DomainError
