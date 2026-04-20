@@ -1,9 +1,8 @@
 package com.httpService.domain
 
-import com.httpService.domain.domain.AccountId.AccountId
-import com.httpService.repository.AccountRepository
+import com.httpService.domain.Models.AccountId.AccountId
 
-object domain {
+object Models {
 
   object AccountId {
     opaque type AccountId = String
