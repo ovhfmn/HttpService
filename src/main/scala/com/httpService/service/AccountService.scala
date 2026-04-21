@@ -2,7 +2,8 @@ package com.httpService.service
 
 import cats.data.EitherT
 import cats.effect.IO
-import com.httpService.domain.domain.{Account, AccountId, AccountService, Balance, DomainError, Money}
+import com.httpService.domain.AccountDomainService
+import com.httpService.domain.Models.*
 import com.httpService.repository.AccountRepository
 import org.typelevel.log4cats.SelfAwareStructuredLogger
 import org.typelevel.log4cats.slf4j.Slf4jLogger
@@ -55,7 +56,7 @@ class AccountService(private val repo: AccountRepository) {
       )
 
       updated <- EitherT.fromEither(
-        AccountService.debit(account, money)
+        AccountDomainService.debit(account, money)
       )
 
       _ <- EitherT.liftF(repo.update(updated))
@@ -64,7 +65,7 @@ class AccountService(private val repo: AccountRepository) {
 
   def credit(id: String, amount: BigDecimal): EitherT[IO, DomainError, Account] =
     for {
-      _ <- EitherT.liftF(logger.info(s"[CREADIT] id=$id amount=$amount"))
+      _ <- EitherT.liftF(logger.info(s"[CREDIT] id=$id amount=$amount"))
 
       accountId <- EitherT.fromEither[IO](
         AccountId.from(id).left.map(_ => DomainError.InvalidAmount)
@@ -80,7 +81,7 @@ class AccountService(private val repo: AccountRepository) {
       )
 
       updated <- EitherT.fromEither(
-        AccountService.credit(account, money)
+        AccountDomainService.credit(account, money)
       )
 
       _ <- EitherT.liftF(repo.update(updated))

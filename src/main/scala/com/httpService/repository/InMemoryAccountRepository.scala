@@ -1,8 +1,8 @@
 package com.httpService.repository
 
 import cats.effect.{IO, Ref}
-import com.httpService.domain.domain.Account
-import com.httpService.domain.domain.AccountId.AccountId
+import com.httpService.domain.Models.Account
+import com.httpService.domain.Models.AccountId.AccountId
 
 
 class InMemoryAccountRepository(ref: Ref[IO, Map[AccountId, Account]]) extends AccountRepository {

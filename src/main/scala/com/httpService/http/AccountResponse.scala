@@ -1,6 +1,6 @@
 package com.httpService.http
 
-import com.httpService.domain.domain.Account
+import com.httpService.domain.Models.Account
 
 final case class AccountResponse(
                                   id: String,

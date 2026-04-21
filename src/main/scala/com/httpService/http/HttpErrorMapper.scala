@@ -1,8 +1,8 @@
 package com.httpService.http
 
 import cats.effect.IO
-import com.httpService.domain.domain.{Account, DomainError}
-import com.httpService.domain.domain.DomainError.{AccountAlreadyExists, AccountNotFound, InsufficientFunds, InvalidAmount}
+import com.httpService.domain.Models.{Account, DomainError}
+import com.httpService.domain.Models.DomainError.{AccountAlreadyExists, AccountNotFound, InsufficientFunds, InvalidAmount}
 import io.circe.generic.auto.*
 import org.http4s.*
 import org.http4s.circe.CirceEntityCodec.*
@@ -31,6 +31,6 @@ object HttpErrorMapper {
   def handleResult(result: Either[DomainError, Account]): IO[Response[IO]] =
     result match {
       case Left(err) => HttpErrorMapper.toResponse(err)
-      case Right(acc) => Ok(s"Balance: ${acc.balance}")
+      case Right(acc) => Ok(AccountResponse(acc.id.value, acc.balance.value))
     }
 }

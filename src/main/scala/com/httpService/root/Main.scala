@@ -3,8 +3,9 @@ package com.httpService.root
 import cats.effect.{IO, IOApp, Ref}
 import cats.syntax.semigroupk.*
 import com.comcast.ip4s.{host, port}
-import com.httpService.domain.domain.Account
-import com.httpService.domain.domain.AccountId.AccountId
+import com.httpService.app.AppBuilder
+import com.httpService.domain.Models.Account
+import com.httpService.domain.Models.AccountId.AccountId
 import com.httpService.http.AccountRoutes
 import com.httpService.repository.InMemoryAccountRepository
 import com.httpService.service.AccountService
@@ -21,13 +22,13 @@ object Main extends IOApp.Simple {
       Ok("OK")
   }
 
-  override def run: IO[Unit] = program
+  override def run: IO[Unit] = program2
 
   val program: IO[Unit] =
     for {
       ref <- Ref.of[IO, Map[AccountId, Account]](Map.empty)
       repo = new InMemoryAccountRepository(ref)
-      service = new AccountService(repo)
+      service = new com.httpService.service.AccountService(repo)
       routes = new AccountRoutes(service).routes
         <+> healthRoutes
       httpApp = Logger.httpApp(
@@ -42,4 +43,14 @@ object Main extends IOApp.Simple {
         .use(_ => IO.never)
     } yield ()
 
+  val program2: IO[Unit] =
+    AppBuilder.build.use { httpApp =>
+      EmberServerBuilder
+        .default[IO]
+        .withHost(host"0.0.0.0")
+        .withPort(port"8010")
+        .withHttpApp(httpApp)
+        .build
+        .useForever
+    }
 }
