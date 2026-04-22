@@ -1,4 +1,5 @@
-import com.httpService.domain.domain.{Account, AccountId, AccountService, Balance, Money}
+import com.httpService.domain.AccountDomainService
+import com.httpService.domain.Models.{Account, AccountId, Balance, Money}
 import munit.CatsEffectSuite
 
 class AccountDomainSpec extends CatsEffectSuite {
@@ -13,23 +14,42 @@ class AccountDomainSpec extends CatsEffectSuite {
     assert(result.isLeft)
   }
 
-  test("debit full balance result in zero") {
-    val account = Account(
-      AccountId.from("acc1").toOption.get,
-      Balance.from(BigDecimal(50)).toOption.get
-    )
+  test("money addition works") {
+    val Right(m1) = Money.from(BigDecimal(40))
+    val Right(m2) = Money.from(BigDecimal(10))
 
-    val amount = Money.from(BigDecimal(50)).toOption.get
+    val result = m1.add(m2)
 
-    val result = AccountService.debit(account, BigDecimal(50))
-
-    assertEquals(
-      result.map(_.balance.value),
-      Right(BigDecimal(0))
-    )
+    assertEquals(result.value, BigDecimal(50))
   }
 
-  test("money addition works") {}
-  test("money subtraction works") {}
-  test("balance subtraction fails when negative") {}
+  test("money subtraction works") {
+    val Right(m1) = Money.from(BigDecimal(40))
+    val Right(m2) = Money.from(BigDecimal(10))
+
+    val result = m1.subtract(m2)
+
+    assertEquals(result.value, BigDecimal(30))
+  }
+
+  test("debit full balance results in zero") {
+    val Right(id) = AccountId.from("acc1")
+    val Right(balance) = Balance.from(BigDecimal(50))
+    val account = Account(id, balance)
+
+    val Right(amount) = Money.from(BigDecimal(50))
+
+    val result = AccountDomainService.debit(account, amount)
+
+    assertEquals(result.map(_.balance.value), Right(BigDecimal(0)))
+  }
+
+  test("balance subtraction fails when negative") {
+    val Right(balance) = Balance.from(BigDecimal(20))
+    val Right(amount) = Money.from(BigDecimal(50))
+
+    val result = balance.subtract(amount)
+
+    assert(result.isLeft)
+  }
 }
