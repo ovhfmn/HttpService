@@ -27,6 +27,7 @@ object Models {
       def add(other: Money): Money = m + other
       def subtract(other: Money): Money = m - other
       def lessThen(other: Money): Boolean = m < other
+      def value: BigDecimal = m
   }
 
   opaque type Balance = BigDecimal

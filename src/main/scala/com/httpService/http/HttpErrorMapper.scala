@@ -31,6 +31,6 @@ object HttpErrorMapper {
   def handleResult(result: Either[DomainError, Account]): IO[Response[IO]] =
     result match {
       case Left(err) => HttpErrorMapper.toResponse(err)
-      case Right(acc) => Ok(AccountResponse(acc.id.value, acc.balance.value))
+      case Right(acc) => Ok(AccountResponse.from(acc))
     }
 }
