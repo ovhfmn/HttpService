@@ -13,6 +13,9 @@ import org.http4s.dsl.io.*
 
 class AccountRoutes(service: AccountService) {
   val routes: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    case GET -> Root / "health" =>
+      Ok("OK")
+
     case req @ POST -> Root / "accounts" / id / "debit" =>
       (for {
         body <- EitherT.liftF(req.as[DebitRequest])
@@ -31,6 +34,4 @@ class AccountRoutes(service: AccountService) {
         result <- service.create(body.id, body.balance)
       } yield result).value.flatMap(handleResult)
   }
-
-  object AmountQueryParamMatcher extends QueryParamDecoderMatcher[String]("amount")
 }

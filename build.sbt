@@ -28,6 +28,7 @@ lazy val root = (project in file("."))
 
       // logging
       "org.typelevel" %% "log4cats-slf4j" % "2.6.0",
+      "ch.qos.logback" % "logback-classic" % "1.5.13",
 
       // test
       "org.typelevel" %% "munit-cats-effect" % "2.0.0" % Test,

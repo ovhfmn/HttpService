@@ -1,8 +1,8 @@
 package com.httpService.http
 
 import cats.effect.IO
+import com.httpService.domain.Models.DomainError.*
 import com.httpService.domain.Models.{Account, DomainError}
-import com.httpService.domain.Models.DomainError.{AccountAlreadyExists, AccountNotFound, InsufficientFunds, InvalidAmount}
 import io.circe.generic.auto.*
 import org.http4s.*
 import org.http4s.circe.CirceEntityCodec.*
@@ -17,14 +17,20 @@ object HttpErrorMapper {
   def toResponse(error: DomainError): IO[Response[IO]] =
     logger.info(s"[ERROR] $error") *> (
       error match {
-        case AccountNotFound => NotFound(ErrorResponse(
+        case AccountNotFound(_) => NotFound(ErrorResponse(
           error = "AccountNotFound", message = "Account does not exist"))
-        case InsufficientFunds => BadRequest(ErrorResponse(
+        case InsufficientFunds(_) => BadRequest(ErrorResponse(
           error = "InsufficientFunds", message = "Not enough balance"))
-        case InvalidAmount => BadRequest(ErrorResponse(
+        case InvalidAmount(_) => BadRequest(ErrorResponse(
           error = "InvalidAmount", message = "Amount must be positive"))
-        case AccountAlreadyExists => Conflict(ErrorResponse(
+        case AccountAlreadyExists(_) => Conflict(ErrorResponse(
           error = "AccountAlreadyExists", message = "Account already exists"))
+        case InvalidAccountId(_) => BadRequest(ErrorResponse(
+          error = "AccountAlreadyExists", message = "Account already exists"))
+        case TechnicalFailure(e) => Conflict(ErrorResponse(
+          error = "TechnicalFailure", message = e))
+        case ConcurrentModification(id) => Conflict(ErrorResponse(
+          error = "ConcurrentModification", message = s"Account $id was modified concurently"))
       }
     )
     

@@ -4,25 +4,28 @@ A functional backend service built with **Scala 3**, demonstrating clean archite
 
 ---
 
-## Overview
+## 🚀 Overview
 
-This project implements a simple **account management system** with the ability to:
+This project implements a simple **account management system** with:
 
-* Create accounts
-* Credit accounts
-* Debit accounts
-* Prevent invalid operations (e.g. overdraft, duplicates)
-
-The goal of the project is to showcase:
-
-* Functional programming in Scala
-* Clean architecture (domain → service → repository → HTTP)
-* Type-safe design
-* Testable and maintainable code
+* Account creation
+* Credit / debit operations
+* Validation of business rules (no overdrafts, no duplicates)
+* HTTP API with JSON support
+* Pluggable persistence (In-Memory + PostgreSQL)
 
 ---
 
-## Architecture
+## 🧠 Goals
+
+* Demonstrate **functional programming in Scala**
+* Apply **clean architecture principles**
+* Model a **type-safe domain**
+* Build a **testable and maintainable backend service**
+
+---
+
+## 🏗 Architecture
 
 ```
 Client
@@ -31,16 +34,16 @@ HTTP (http4s)
    ↓
 Routes
    ↓
-Service (EitherT + IO)
+Service (EitherT[IO, DomainError, A])
    ↓
-Repository (Ref)
+Repository (InMemory / Postgres)
    ↓
 Domain (pure logic)
 ```
 
 ---
 
-## Key Concepts Used
+## 🧩 Key Concepts
 
 ### Functional Effects
 
@@ -49,24 +52,26 @@ Domain (pure logic)
 ### Error Handling
 
 * `Either[DomainError, A]`
-* `EitherT[IO, DomainError, A]` for composition
+* `EitherT[IO, DomainError, A]`
 
 ### State Management
 
-* `Ref[IO, Map[AccountId, Account]]` as an in-memory database
+* `Ref[IO, Map[AccountId, Account]]` (in-memory)
+* PostgreSQL via Doobie
 
 ### Type Safety
 
 * Opaque types:
-    * `AccountId`
-    * `Money`
-    * `Balance`
+
+  * `AccountId`
+  * `Money`
+  * `Balance`
 
 ### Separation of Concerns
 
 * Domain (pure logic)
-* Service (business rules)
-* Repository (state)
+* Service (business orchestration)
+* Repository (state / persistence)
 * HTTP (transport layer)
 
 ---
@@ -79,12 +84,10 @@ Domain (pure logic)
 POST /accounts
 ```
 
-**Request:**
-
 ```json
 {
   "id": "acc1",
-  "initialBalance": 100
+  "balance": 100
 }
 ```
 
@@ -95,8 +98,6 @@ POST /accounts
 ```http
 POST /accounts/{id}/debit
 ```
-
-**Request:**
 
 ```json
 {
@@ -111,8 +112,6 @@ POST /accounts/{id}/debit
 ```http
 POST /accounts/{id}/credit
 ```
-
-**Request:**
 
 ```json
 {
@@ -130,15 +129,15 @@ GET /health
 
 ---
 
-## Testing
+## 🧪 Testing
 
-The project includes tests for multiple layers:
+Covers multiple layers:
 
-* **Domain tests** – validation and business rules
-* **Service tests** – orchestration logic
-* **HTTP tests** – endpoint behavior
+* **Domain tests** → pure business rules
+* **Service tests** → orchestration logic
+* **HTTP tests** → endpoint behavior
 
-Run tests with:
+Run:
 
 ```bash
 sbt test
@@ -146,7 +145,7 @@ sbt test
 
 ---
 
-## Running the Application
+## ▶️ Running the Application
 
 ```bash
 sbt run
@@ -155,23 +154,32 @@ sbt run
 Then access:
 
 ```
-http://localhost:{PORT}/health
+http://localhost:8010/health
 ```
 
 ---
 
-## 📌 Example (curl)
+## 🗄 Database
+
+* PostgreSQL supported via Doobie
+* Default connection:
+
+  * `jdbc:postgresql://localhost:5432/postgres`
+  * user: `postgres`
+  * password: `postgres`
+
+---
+
+## 🛠 Example
 
 ```bash
-curl -X POST http://localhost:{PORT}/accounts \
+curl -X POST http://localhost:8010/accounts \
   -H "Content-Type: application/json" \
-  -d '{"id":"acc1","initialBalance":100}'
+  -d '{"id":"acc1","balance":100}'
 ```
 
 ```bash
-curl -X POST http://localhost:8010/accounts/{account_id}/debit \
+curl -X POST http://localhost:8010/accounts/acc1/debit \
   -H "Content-Type: application/json" \
   -d '{"amount": 10}'
 ```
-
----

@@ -2,9 +2,13 @@ package com.httpService.service
 
 import cats.data.EitherT
 import cats.effect.IO
+import cats.syntax.all.*
 import com.httpService.domain.AccountDomainService
 import com.httpService.domain.Models.*
-import com.httpService.repository.AccountRepository
+import com.httpService.domain.Models.AccountId.AccountId
+import com.httpService.repository.{AccountRepository, DomainException}
+import doobie.ConnectionIO
+import doobie.implicits.*
 import org.typelevel.log4cats.SelfAwareStructuredLogger
 import org.typelevel.log4cats.slf4j.Slf4jLogger
 
@@ -14,77 +18,118 @@ class AccountService(private val repo: AccountRepository) {
 
   def create(id: String, balance: BigDecimal): EitherT[IO, DomainError, Account] =
     for {
-      _ <- EitherT.liftF(logger.info(s"[CREATE] id=$id amount=$balance"))
+      _ <- EitherT.liftF(logger.info(s"action=CREATE id=$id amount=$balance"))
 
-      accountId <- EitherT.fromEither[IO](
-        AccountId.from(id).left.map(_ => DomainError.InvalidAmount)
+      accountId <- EitherT.fromEither[IO](AccountId.from(id)
+        .left.map(_ => DomainError.InvalidAccountId(id)))
+
+      validatedBalance <- EitherT.fromEither[IO](Balance.from(balance)
+        .left.map(_ => DomainError.InvalidAmount(balance)))
+
+      result <- EitherT(
+        repo.inTransaction(createTx(accountId, validatedBalance)).attempt.map {
+          case Right(v) => Right(v)
+          case Left(DomainException(err)) => Left(err)
+          case Left(e) => Left(DomainError.TechnicalFailure(e.getMessage))
+        }
       )
 
-      validatedBalance <- EitherT.fromEither[IO](
-        Balance.from(balance).left.map(_ => DomainError.InvalidAmount)
-      )
+      _ <- EitherT.liftF(logger.info(s"action=CREATE account=$result"))
+    } yield result
 
-      existing <- EitherT.liftF(repo.find(accountId))
+  private def createTx(accountId: AccountId, balance: Balance): ConnectionIO[Account] =
+    for {
+      existing <- repo.findC(accountId)
 
-      _ <- EitherT.cond[IO](
-        existing.isEmpty,
-        (),
-        DomainError.AccountAlreadyExists
-      )
+      _ <- existing match {
+        case Some(_) => DomainException(DomainError.AccountAlreadyExists(accountId.value))
+          .raiseError[ConnectionIO, Unit]
+        case None => 
+          ().pure[ConnectionIO]
+      }
 
-      account = Account(accountId, validatedBalance)
+      account = Account(accountId, balance)
 
-      _ <- EitherT.liftF(repo.create(account))
-      _ <- EitherT.liftF(logger.info(s"[CREATE] account=$account"))
+      _ <- repo.createC(account)
+
     } yield account
-
+    
   def debit(id: String, amount: BigDecimal): EitherT[IO, DomainError, Account] =
     for {
-      _ <- EitherT.liftF(logger.info(s"[DEBIT] id=$id amount=$amount"))
+      _ <- EitherT.liftF(logger.info(s"action=DEBIT id=$id amount=$amount"))
 
-      accountId <- EitherT.fromEither[IO](
-        AccountId.from(id).left.map(_ => DomainError.InvalidAmount)
+      accountId <- EitherT.fromEither[IO](AccountId.from(id)
+        .left.map(_ => DomainError.AccountNotFound(id)))
+
+      money <- EitherT.fromEither[IO](Money.from(amount)
+        .left.map(_ => DomainError.InvalidAmount(amount)))
+
+      updated_account <- EitherT(
+        repo.inTransaction(debitTx(accountId, money)).attempt.map {
+          case Right(account) => Right(account)
+          case Left(e: DomainError) => Left(e)
+          case Left(e) => Left(DomainError.TechnicalFailure(e.getMessage))
+        }
       )
-
-      money <- EitherT.fromEither[IO](
-        Money.from(amount).left.map(_ => DomainError.InvalidAmount)
-      )
-
-      account <- EitherT.fromOptionF(
-        repo.find(accountId),
-        DomainError.AccountNotFound
-      )
-
-      updated <- EitherT.fromEither(
-        AccountDomainService.debit(account, money)
-      )
-
-      _ <- EitherT.liftF(repo.update(updated))
-      _ <- EitherT.liftF(logger.info(s"[DEBIT] updated=$updated"))
-    } yield updated
+      _ <- EitherT.liftF(logger.info(s"action=DEBIT updated=$updated_account"))
+    } yield updated_account
 
   def credit(id: String, amount: BigDecimal): EitherT[IO, DomainError, Account] =
     for {
-      _ <- EitherT.liftF(logger.info(s"[CREDIT] id=$id amount=$amount"))
+      _ <- EitherT.liftF(logger.info(s"action=CREDIT id=$id amount=$amount"))
 
-      accountId <- EitherT.fromEither[IO](
-        AccountId.from(id).left.map(_ => DomainError.InvalidAmount)
+      accountId <- EitherT.fromEither[IO](AccountId.from(id)
+        .left.map(_ => DomainError.AccountNotFound(id)))
+
+      money <- EitherT.fromEither[IO](Money.from(amount)
+        .left.map(_ => DomainError.InvalidAmount(amount)))
+
+      result <- EitherT(
+        repo.inTransaction(creditTx(accountId, money)).attempt.map {
+          case Right(v) => Right(v)
+          case Left(DomainException(err)) => Left(err)
+          case Left(e) => Left(DomainError.TechnicalFailure(e.getMessage))
+        }
       )
 
-      money <- EitherT.fromEither[IO](
-        Money.from(amount).left.map(_ => DomainError.InvalidAmount)
-      )
+      _ <- EitherT.liftF(logger.info(s"action=CREDIT updated=$result"))
+    } yield result
 
-      account <- EitherT.fromOptionF(
-        repo.find(accountId),
-        DomainError.AccountNotFound
-      )
+  private def debitTx(accountId: AccountId, amount: Money): ConnectionIO[Account] = {
+    for {
+      maybeAccount <- repo.findC(accountId)
 
-      updated <- EitherT.fromEither(
-        AccountDomainService.credit(account, money)
-      )
+      account <- maybeAccount match {
+        case Some(acc) => acc.pure[ConnectionIO]
+        case None => DomainException(DomainError.AccountNotFound(accountId.value))
+          .raiseError[ConnectionIO, Account]
+      }
 
-      _ <- EitherT.liftF(repo.update(updated))
-      _ <- EitherT.liftF(logger.info(s"[CREDIT] updated=$updated"))
+      updated <- AccountDomainService.debit(account, amount) match {
+        case Left(e) => DomainException(e).raiseError[ConnectionIO, Account]
+        case Right(acc) => acc.pure[ConnectionIO]
+      }
+
+      _ <- repo.updateC(updated)
+    } yield updated
+  }
+
+  private def creditTx(accountId: AccountId, money: Money): ConnectionIO[Account] =
+    for {
+      maybeAccount <- repo.findC(accountId)
+
+      account <- maybeAccount match {
+        case Some(acc) => acc.pure[ConnectionIO]
+        case None => DomainException(DomainError.AccountNotFound(accountId.value))
+          .raiseError[ConnectionIO, Account]
+      }
+
+      updated <- AccountDomainService.credit(account, money) match {
+        case Left(err) => DomainException(err).raiseError[ConnectionIO, Account]
+        case Right(acc) => acc.pure[ConnectionIO]
+      }
+
+      _ <- repo.updateC(updated)
+
     } yield updated
 }
