@@ -6,28 +6,30 @@ import com.httpService.repository.PostgresAccountRepository
 import com.httpService.service.AccountService
 import doobie.hikari.HikariTransactor
 import org.http4s.HttpApp
+import com.httpService.config.AppConfig
+import com.httpService.config.ConfigLoader
 
 object AppBuilder {
 
-  def build: Resource[IO, HttpApp[IO]] =
+  def build: Resource[IO, (HttpApp[IO], AppConfig)] =
     for {
-      xa <- transactor
+      config <- Resource.eval(ConfigLoader.load)
+      xa <- transactor(config)
     } yield {
       val repo = new PostgresAccountRepository(xa)
       val service = new AccountService(repo)
       val routes = new AccountRoutes(service).routes
-      routes.orNotFound
+      (routes.orNotFound, config)
     }
 
-  private def transactor: Resource[IO, HikariTransactor[IO]] = {
+  private def transactor(config: AppConfig): Resource[IO, HikariTransactor[IO]] = {
     for {
       connectEC <- Resource.eval(IO.executionContext)
-
       xa <- HikariTransactor.newHikariTransactor[IO](
         "org.postgresql.Driver",
-        "jdbc:postgresql://localhost:5432/postgres",
-        "postgres",
-        "postgres",
+        config.db.url,
+        config.db.user,
+        config.db.password,
         connectEC
       )
     } yield xa

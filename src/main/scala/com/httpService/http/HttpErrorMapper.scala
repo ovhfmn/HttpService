@@ -25,9 +25,9 @@ object HttpErrorMapper {
           error = "InvalidAmount", message = "Amount must be positive"))
         case AccountAlreadyExists(_) => Conflict(ErrorResponse(
           error = "AccountAlreadyExists", message = "Account already exists"))
-        case InvalidAccountId(_) => BadRequest(ErrorResponse(
-          error = "AccountAlreadyExists", message = "Account already exists"))
-        case TechnicalFailure(e) => Conflict(ErrorResponse(
+        case InvalidAccountId(id) => BadRequest(ErrorResponse(
+          error = "InvalidAccountId", message = s"Account id '$id' is invalid"))
+        case TechnicalFailure(e) => InternalServerError(ErrorResponse(
           error = "TechnicalFailure", message = e))
         case ConcurrentModification(id) => Conflict(ErrorResponse(
           error = "ConcurrentModification", message = s"Account $id was modified concurently"))
