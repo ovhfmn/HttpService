@@ -26,6 +26,10 @@ lazy val root = (project in file("."))
       // Postgres driver
       "org.postgresql" % "postgresql" % "42.7.3",
 
+      // config
+      "com.github.pureconfig" %% "pureconfig-core"        % "0.17.6",
+      "com.github.pureconfig" %% "pureconfig-cats-effect" % "0.17.6",
+
       // logging
       "org.typelevel" %% "log4cats-slf4j" % "2.6.0",
       "ch.qos.logback" % "logback-classic" % "1.5.13",

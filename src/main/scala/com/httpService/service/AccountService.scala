@@ -59,7 +59,7 @@ class AccountService(private val repo: AccountRepository) {
       _ <- EitherT.liftF(logger.info(s"action=DEBIT id=$id amount=$amount"))
 
       accountId <- EitherT.fromEither[IO](AccountId.from(id)
-        .left.map(_ => DomainError.AccountNotFound(id)))
+        .left.map(_ => DomainError.InvalidAccountId(id)))
 
       money <- EitherT.fromEither[IO](Money.from(amount)
         .left.map(_ => DomainError.InvalidAmount(amount)))
@@ -79,7 +79,7 @@ class AccountService(private val repo: AccountRepository) {
       _ <- EitherT.liftF(logger.info(s"action=CREDIT id=$id amount=$amount"))
 
       accountId <- EitherT.fromEither[IO](AccountId.from(id)
-        .left.map(_ => DomainError.AccountNotFound(id)))
+        .left.map(_ => DomainError.InvalidAccountId(id)))
 
       money <- EitherT.fromEither[IO](Money.from(amount)
         .left.map(_ => DomainError.InvalidAmount(amount)))

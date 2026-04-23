@@ -1,8 +1,14 @@
 package com.httpService.config
 
+import pureconfig.*
+import cats.effect.IO
+import pureconfig.generic.derivation.default.*
+import pureconfig.generic.*
+import scala.deriving.Mirror
+
 object ConfigLoader {
-  def load: AppConfig = AppConfig(
-    host = sys.env.getOrElse("HOST", "0.0.0.0"),
-    port = sys.env.get("PORT").flatMap(_.toIntOption).getOrElse(8010)
-  )
+  def load: IO[AppConfig] =
+    IO.blocking {
+      ConfigSource.default.at("app").loadOrThrow[AppConfig]
+    }
 }

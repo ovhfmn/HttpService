@@ -12,7 +12,7 @@ This project implements a simple **account management system** with:
 * Credit / debit operations
 * Validation of business rules (no overdrafts, no duplicates)
 * HTTP API with JSON support
-* Pluggable persistence (In-Memory + PostgreSQL)
+* PostgreSQL persistence with optimistic locking
 
 ---
 
@@ -22,6 +22,7 @@ This project implements a simple **account management system** with:
 * Apply **clean architecture principles**
 * Model a **type-safe domain**
 * Build a **testable and maintainable backend service**
+* Showcase **transactional correctness and concurrency handling**
 
 ---
 
@@ -36,7 +37,7 @@ Routes
    ↓
 Service (EitherT[IO, DomainError, A])
    ↓
-Repository (InMemory / Postgres)
+Repository (Doobie / PostgreSQL)
    ↓
 Domain (pure logic)
 ```
@@ -48,16 +49,19 @@ Domain (pure logic)
 ### Functional Effects
 
 * `IO` for managing side effects
+* `ConnectionIO` for database programs
 
 ### Error Handling
 
 * `Either[DomainError, A]`
 * `EitherT[IO, DomainError, A]`
+* Mapping to HTTP responses
 
-### State Management
+### Persistence
 
-* `Ref[IO, Map[AccountId, Account]]` (in-memory)
 * PostgreSQL via Doobie
+* Transactions via `transact`
+* Optimistic locking using `version`
 
 ### Type Safety
 
@@ -67,80 +71,131 @@ Domain (pure logic)
   * `Money`
   * `Balance`
 
-### Separation of Concerns
+---
 
-* Domain (pure logic)
-* Service (business orchestration)
-* Repository (state / persistence)
-* HTTP (transport layer)
+## 🧠 Key Design Decisions
+
+### Why Cats Effect instead of Future?
+
+* Referential transparency
+* Composable effects
+* Structured concurrency
+
+### Why http4s?
+
+* Pure functional ecosystem
+* Seamless integration with Cats Effect
+* Minimal abstraction overhead
+
+### Why Doobie?
+
+* Type-safe SQL
+* Full control over queries
+* Better transparency vs ORMs
+
+### Why optimistic locking?
+
+* Prevents lost updates
+* Detects concurrent modifications
+* Ensures consistency in multi-request scenarios
 
 ---
 
-## 📌 API Endpoints
+## 🐘 PostgreSQL Setup & Usage
 
-### Create Account
-
-```http
-POST /accounts
-```
-
-```json
-{
-  "id": "acc1",
-  "balance": 100
-}
-```
-
----
-
-### Debit Account
-
-```http
-POST /accounts/{id}/debit
-```
-
-```json
-{
-  "amount": 10
-}
-```
-
----
-
-### Credit Account
-
-```http
-POST /accounts/{id}/credit
-```
-
-```json
-{
-  "amount": 10
-}
-```
-
----
-
-### Health Check
-
-```http
-GET /health
-```
-
----
-
-## 🧪 Testing
-
-Covers multiple layers:
-
-* **Domain tests** → pure business rules
-* **Service tests** → orchestration logic
-* **HTTP tests** → endpoint behavior
-
-Run:
+### 🔐 Connect
 
 ```bash
-sbt test
+psql -U postgres -W
+```
+
+---
+
+### 🧱 Create Database
+
+```sql
+CREATE DATABASE account_service;
+```
+
+```bash
+\c account_service
+```
+
+---
+
+### 📦 Create Table
+
+```sql
+CREATE TABLE accounts (
+  id TEXT PRIMARY KEY,
+  balance NUMERIC NOT NULL,
+  version BIGINT NOT NULL
+);
+```
+
+---
+
+### ➕ Insert Data
+
+```sql
+INSERT INTO accounts (id, balance, version)
+VALUES ('acc1', 100, 0);
+```
+
+---
+
+### 🔍 Query Data
+
+```sql
+SELECT * FROM accounts;
+```
+
+---
+
+### 📋 Show Tables
+
+```bash
+\dt
+```
+
+---
+
+### 🧠 Inspect Schema
+
+```bash
+\d accounts
+```
+
+---
+
+### 🧹 Reset Table
+
+```sql
+DROP TABLE IF EXISTS accounts;
+
+CREATE TABLE accounts (
+  id TEXT PRIMARY KEY,
+  balance NUMERIC NOT NULL,
+  version BIGINT NOT NULL
+);
+```
+
+---
+
+### ❌ Exit
+
+```bash
+\q
+```
+
+---
+
+## ⚙️ PostgreSQL Service (Linux)
+
+```bash
+sudo systemctl status postgresql
+sudo systemctl start postgresql
+sudo systemctl restart postgresql
 ```
 
 ---
@@ -151,7 +206,7 @@ sbt test
 sbt run
 ```
 
-Then access:
+Health check:
 
 ```
 http://localhost:8010/health
@@ -159,18 +214,9 @@ http://localhost:8010/health
 
 ---
 
-## 🗄 Database
+## 🧪 Example API Usage
 
-* PostgreSQL supported via Doobie
-* Default connection:
-
-  * `jdbc:postgresql://localhost:5432/postgres`
-  * user: `postgres`
-  * password: `postgres`
-
----
-
-## 🛠 Example
+### Create Account
 
 ```bash
 curl -X POST http://localhost:8010/accounts \
@@ -178,8 +224,124 @@ curl -X POST http://localhost:8010/accounts \
   -d '{"id":"acc1","balance":100}'
 ```
 
+---
+
+### Debit
+
 ```bash
 curl -X POST http://localhost:8010/accounts/acc1/debit \
   -H "Content-Type: application/json" \
-  -d '{"amount": 10}'
+  -d '{"amount":10}'
 ```
+
+---
+
+### Credit
+
+```bash
+curl -X POST http://localhost:8010/accounts/acc1/credit \
+  -H "Content-Type: application/json" \
+  -d '{"amount":10}'
+```
+
+---
+
+## ❗ Example Errors
+
+### Duplicate Account
+
+```json
+{
+  "error": "AccountAlreadyExists",
+  "message": "Account acc1 already exists"
+}
+```
+
+---
+
+### Concurrent Modification
+
+```json
+{
+  "error": "ConcurrentModification",
+  "message": "Account acc1 was modified concurrently"
+}
+```
+
+---
+
+### Invalid Input
+
+```json
+{
+  "error": "InvalidAmount",
+  "message": "Amount must be positive"
+}
+```
+
+---
+
+## 🪵 Logging
+
+* Uses **SLF4J + Logback**
+* Logs written to:
+
+```
+logs/app.log
+```
+
+* Includes:
+
+  * request actions
+  * errors
+  * state transitions
+
+---
+
+## 🧪 Testing Strategy
+
+### Domain Tests
+
+~~* Pure logic~~
+~~* No side effects
+* Fast and deterministic
+~~
+### Integration Tests (recommended)
+
+~~* Use real PostgreSQL (Testcontainers)
+* Validate SQL + transactions
+~~
+---
+
+## ⚠️ Limitations
+
+* No authentication / authorization
+* No request validation at HTTP boundary
+* No pagination or advanced querying
+* Single-node DB assumption
+* No metrics or tracing yet
+
+---
+
+## 🚀 Future Improvements
+
+* Structured logging (JSON)
+* Request correlation IDs
+* Testcontainers integration
+* AppError vs DomainError separation
+* Config via environment (PureConfig or alternative)
+* Observability (metrics, tracing)
+
+---
+
+## 📌 Summary
+
+This project demonstrates:
+
+* Functional Scala backend development
+* Real-world database interaction with Doobie
+* Transactional correctness
+* Optimistic locking for concurrency safety
+* Clean architecture and separation of concerns
+
+---
