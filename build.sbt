@@ -26,6 +26,9 @@ lazy val root = (project in file("."))
       // Postgres driver
       "org.postgresql" % "postgresql" % "42.7.3",
 
+      // kafka
+      "com.github.fd4s" %% "fs2-kafka" % "3.5.1",
+
       // config
       "com.github.pureconfig" %% "pureconfig-core"        % "0.17.6",
       "com.github.pureconfig" %% "pureconfig-cats-effect" % "0.17.6",
@@ -37,7 +40,11 @@ lazy val root = (project in file("."))
 
       // test
       "org.typelevel" %% "munit-cats-effect" % "2.0.0" % Test,
-      "org.http4s" %% "http4s-ember-client" % "0.23.23" % Test
+      "org.http4s" %% "http4s-ember-client" % "0.23.23" % Test,
+
+      // Testcontainers
+      "com.dimafeng" %% "testcontainers-scala-munit" % "0.41.4" % Test,
+      "com.dimafeng" %% "testcontainers-scala-postgresql" % "0.41.4" % Test
     )
   )
 

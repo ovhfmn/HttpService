@@ -8,6 +8,7 @@ import doobie.hikari.HikariTransactor
 import org.http4s.HttpApp
 import com.httpService.config.AppConfig
 import com.httpService.config.ConfigLoader
+import com.httpService.kafka.EventPublisher
 import com.httpService.middleware.CorrelationIdMiddleware
 
 object AppBuilder {
@@ -19,7 +20,8 @@ object AppBuilder {
     } yield {
       val repo = new PostgresAccountRepository(xa)
       val service = new AccountService(repo)
-      val routes = new AccountRoutes(service).routes
+      val publisher = new EventPublisher("localhost:9092", "account-events")
+      val routes = new AccountRoutes(service, publisher).routes
       val app = CorrelationIdMiddleware(routes.orNotFound)
       (app, config)
     }

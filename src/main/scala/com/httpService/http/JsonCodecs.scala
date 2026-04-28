@@ -1,7 +1,7 @@
 package com.httpService.http
 
 import cats.effect.IO
-import com.httpService.http.Requests.*
+import com.httpService.http.Request.*
 import io.circe.generic.auto.deriveDecoder
 import org.http4s.EntityDecoder
 import org.http4s.circe.jsonOf
