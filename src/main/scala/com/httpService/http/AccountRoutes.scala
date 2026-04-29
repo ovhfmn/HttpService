@@ -30,13 +30,21 @@ class AccountRoutes(service: AccountService, publisher: EventPublisher) {
     case req @ POST -> Root / "accounts" / id / "credit" =>
       (for {
         body <- EitherT.liftF(req.as[CreditRequest])
-        result <- service.credit(id, body.amount)
-      } yield result).value.flatMap(handleResult)
+        account <- service.credit(id, body.amount)
+
+        _ <- EitherT.liftF(publisher.publish(
+          AccountEvent.MoneyCreditedEvent(id, body.amount, account.balance.value)
+        ))
+      } yield account).value.flatMap(handleResult)
 
     case req @ POST -> Root / "accounts" =>
       (for {
         body <- EitherT.liftF(req.as[CreateAccountRequest])
-        result <- service.create(body.id, body.balance)
-      } yield result).value.flatMap(handleResult)
+        account <- service.create(body.id, body.balance)
+
+        _ <- EitherT.liftF(publisher.publish(
+          AccountEvent.AccountCreatedEvent(body.id, body.balance)
+        ))
+      } yield account).value.flatMap(handleResult)
   }
 }

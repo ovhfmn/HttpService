@@ -1,5 +1,6 @@
 <configuration>
 	<logger name="com.zaxxer.hikari.HikariDataSource" level="OFF"/>
+	<logger name="org.apache.kafka" level="OFF"/>
 
 	<!-- JSON appender for structured logging -->
 	<appender name="JSON_STDOUT" class="ch.qos.logback.core.ConsoleAppender">
