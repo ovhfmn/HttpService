@@ -1,13 +1,15 @@
 package com.httpService.repository
 
 import cats.effect.IO
-import cats.syntax.all.*
+import cats.syntax.applicative.*
+import cats.syntax.applicativeError.*
+import cats.syntax.functor.*
 import com.httpService.domain.Models.AccountId.AccountId
 import com.httpService.domain.Models.DomainError.ConcurrentModification
 import com.httpService.domain.Models.{Account, AccountId, Balance}
 import com.httpService.repository.AccountRepository
-import doobie.*
-import doobie.implicits.*
+import doobie.implicits.{toConnectionIOOps, toSqlInterpolator}
+import doobie.{ConnectionIO, Transactor}
 
 class PostgresAccountRepository(xa: Transactor[IO]) extends AccountRepository {
 

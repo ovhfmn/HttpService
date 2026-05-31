@@ -1,10 +1,12 @@
+import sbtassembly.AssemblyPlugin.autoImport.*
+
 ThisBuild / version := "0.1.0-SNAPSHOT"
 
 ThisBuild / scalaVersion := "3.3.7"
 
 lazy val root = (project in file("."))
   .settings(
-    name := "HTTP_service",
+    name := "http-service",
 
     libraryDependencies ++= Seq(
       // core
@@ -45,6 +47,23 @@ lazy val root = (project in file("."))
       // Testcontainers
       "com.dimafeng" %% "testcontainers-scala-munit" % "0.41.4" % Test,
       "com.dimafeng" %% "testcontainers-scala-postgresql" % "0.41.4" % Test
-    )
+    ),
+
+    // Merge Strategy
+    assembly / assemblyMergeStrategy := {
+      case PathList("META-INF", "versions", xs @ _*) if xs.last.endsWith("module-info.class") => MergeStrategy.discard
+      case PathList("META-INF", "io.netty.versions.properties") => MergeStrategy.first
+      case "module-info.class" => MergeStrategy.discard
+      case "META-INF/io.netty.versions.properties" => MergeStrategy.first
+      case PathList("META-INF", "services", xs @ _*) => MergeStrategy.filterDistinctLines
+      case PathList("META-INF", "maven", xs @ _*) => MergeStrategy.discard
+      case PathList("META-INF", xs @ _*) => MergeStrategy.discard
+      case "reference.conf" => MergeStrategy.concat
+      case "application.conf" => MergeStrategy.concat
+      case x => MergeStrategy.first
+    },
+
+    // Force explicit naming
+    assembly / assemblyJarName := "http-service.jar"
   )
 

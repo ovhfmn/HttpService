@@ -1,10 +1,9 @@
 package com.httpService.root
 
 import cats.effect.{IO, IOApp}
-import com.comcast.ip4s.{host, port}
+import com.comcast.ip4s.{Host, Port, host, port}
 import com.httpService.app.AppBuilder
 import org.http4s.ember.server.EmberServerBuilder
-import com.comcast.ip4s.*
 
 object Main extends IOApp.Simple {
 
