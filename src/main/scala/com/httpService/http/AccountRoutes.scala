@@ -12,6 +12,9 @@ import org.http4s.circe.*
 import org.http4s.circe.CirceEntityCodec.*
 import org.http4s.dsl.io.*
 
+import java.time.Instant
+import java.util.UUID
+
 class AccountRoutes(service: AccountService, publisher: EventPublisher) {
   val routes: HttpRoutes[IO] = HttpRoutes.of[IO] {
     case GET -> Root / "health" =>
@@ -23,7 +26,7 @@ class AccountRoutes(service: AccountService, publisher: EventPublisher) {
         account <- service.debit(id, body.amount)
 
         _ <- EitherT.liftF(publisher.publish(
-          AccountEvent.MoneyDebitedEvent(id, body.amount, account.balance.value)
+          AccountEvent.AccountDebited(id, UUID.randomUUID(), Instant.now(), body.amount, account.balance.value)
         ))
       } yield account).value.flatMap(handleResult)
 
@@ -33,7 +36,7 @@ class AccountRoutes(service: AccountService, publisher: EventPublisher) {
         account <- service.credit(id, body.amount)
 
         _ <- EitherT.liftF(publisher.publish(
-          AccountEvent.MoneyCreditedEvent(id, body.amount, account.balance.value)
+          AccountEvent.AccountCredited(id, UUID.randomUUID(), Instant.now(), body.amount, account.balance.value)
         ))
       } yield account).value.flatMap(handleResult)
 
@@ -43,7 +46,7 @@ class AccountRoutes(service: AccountService, publisher: EventPublisher) {
         account <- service.create(body.id, body.balance)
 
         _ <- EitherT.liftF(publisher.publish(
-          AccountEvent.AccountCreatedEvent(body.id, body.balance)
+          AccountEvent.AccountCreated(body.id, UUID.randomUUID(), Instant.now(), body.balance)
         ))
       } yield account).value.flatMap(handleResult)
   }

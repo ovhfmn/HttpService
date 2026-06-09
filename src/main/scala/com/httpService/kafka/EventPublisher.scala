@@ -1,23 +1,37 @@
 package com.httpService.kafka
 
 import cats.effect.IO
-import com.httpService.http.{AccountEvent, Request}
-import fs2.kafka.{KafkaProducer, ProducerRecord, ProducerRecords, ProducerSettings}
+import cats.effect.kernel.Resource
+import com.httpService.http.AccountEvent
+import fs2.kafka.{
+  KafkaProducer,
+  ProducerRecord,
+  ProducerRecords,
+  ProducerSettings
+}
 import io.circe.syntax.*
 
-class EventPublisher(broker: String, topic: String) {
-  private val  settings = ProducerSettings[IO, String, String]
-    .withBootstrapServers(broker)
+class EventPublisher private (
+    producer: KafkaProducer[IO, String, String],
+    topic: String
+) {
 
   def publish(event: AccountEvent): IO[Unit] =
-    KafkaProducer.resource(settings).use { producer =>
-      val key = event match {
-        case e: AccountEvent.AccountCreatedEvent => e.id
-        case e: AccountEvent.MoneyDebitedEvent => e.id
-        case e: AccountEvent.MoneyCreditedEvent => e.id
-      }
-
-      val record = ProducerRecord(topic, key, event.asJson.noSpaces)
-      producer.produce(ProducerRecords.one(record)).flatten.void
+    val key = event match {
+      case e: AccountEvent.AccountCreated   => e.accountId
+      case e: AccountEvent.AccountDebited   => e.accountId
+      case e: AccountEvent.AccountCredited  => e.accountId
     }
+
+    val record = ProducerRecord(topic, key, event.asJson.noSpaces)
+    producer.produce(ProducerRecords.one(record)).flatten.void
 }
+
+object EventPublisher:
+  def resource(broker: String, topic: String): Resource[IO, EventPublisher] =
+    KafkaProducer
+      .resource(
+        ProducerSettings[IO, String, String]
+          .withBootstrapServers(broker)
+      )
+      .map(producer => new EventPublisher(producer, topic))

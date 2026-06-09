@@ -15,12 +15,12 @@ object AppBuilder {
 
   def build: Resource[IO, (HttpApp[IO], AppConfig)] =
     for {
-      config <- Resource.eval(ConfigLoader.load)
-      xa <- transactor(config)
+      config    <- Resource.eval(ConfigLoader.load)
+      xa        <- transactor(config)
+      publisher <- EventPublisher.resource("redpanda:29092", "account-events")
     } yield {
       val repo = new PostgresAccountRepository(xa)
       val service = new AccountService(repo)
-      val publisher = new EventPublisher("localhost:9092", "account-events")
       val routes = new AccountRoutes(service, publisher).routes
       val app = CorrelationIdMiddleware(routes.orNotFound)
       (app, config)
