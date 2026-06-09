@@ -3,18 +3,21 @@ package com.httpService.http
 import cats.data.EitherT
 import cats.effect.IO
 import com.httpService.http.HttpErrorMapper.handleResult
-import com.httpService.http.Request.*
+import com.httpService.http.Request.{CreateAccountRequest,CreditRequest,DebitRequest}
 import com.httpService.kafka.EventPublisher
 import com.httpService.service.AccountService
-import io.circe.generic.auto.*
-import org.http4s.*
-import org.http4s.circe.*
-import org.http4s.circe.CirceEntityCodec.*
+import io.circe.generic.auto.deriveDecoder
+import org.http4s.HttpRoutes
+import org.http4s.circe.CirceEntityCodec.given
 import org.http4s.dsl.io.*
 
 import java.time.Instant
 import java.util.UUID
 
+/**
+ * Note: the Kafka publish happens after the DB transaction commits.
+ * A publish failure does not roll back the committed state.
+ */
 class AccountRoutes(service: AccountService, publisher: EventPublisher) {
   val routes: HttpRoutes[IO] = HttpRoutes.of[IO] {
     case GET -> Root / "health" =>

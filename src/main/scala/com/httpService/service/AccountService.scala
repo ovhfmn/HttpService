@@ -8,10 +8,19 @@ import com.httpService.domain.Models.*
 import com.httpService.domain.Models.AccountId.AccountId
 import com.httpService.repository.{AccountRepository, DomainException}
 import doobie.ConnectionIO
-import doobie.implicits.*
+//import doobie.implicits.*
 import org.typelevel.log4cats.SelfAwareStructuredLogger
 import org.typelevel.log4cats.slf4j.Slf4jLogger
 
+/**
+ * Orchestrates validation, DB transactions, and error recovery.
+ * [[DomainException]] is caught from the `IO` error channel and re-raised
+ * into the `EitherT` error channel.
+ *
+ * Caveat: [[debit]] has a bug — its `.attempt` handler matches on
+ * `DomainError` directly rather than `DomainException(err)`, so all domain
+ * errors from [[debitTx]] are reported as [[DomainError.TechnicalFailure]].
+ */
 class AccountService(private val repo: AccountRepository) {
 
   val logger: SelfAwareStructuredLogger[IO] = Slf4jLogger.getLogger[IO]
@@ -76,20 +85,20 @@ class AccountService(private val repo: AccountRepository) {
       money <- EitherT.fromEither[IO](Money.from(amount)
         .left.map(_ => DomainError.InvalidAmount(amount)))
 
-      updated_account <- EitherT(
+      updatedAccount <- EitherT(
         repo.inTransaction(debitTx(accountId, money)).attempt.map {
           case Right(account) => Right(account)
-          case Left(e: DomainError) => Left(e)
+          case Left(DomainException(e)) => Left(e)
           case Left(e) => Left(DomainError.TechnicalFailure(e.getMessage))
         }
       )
 
       _ <- EitherT.liftF(logger.info(Map(
         "action" -> "DEBIT",
-        "id" -> updated_account.id.value,
-        "balance" -> updated_account.balance.value.toString
+        "id" -> updatedAccount.id.value,
+        "balance" -> updatedAccount.balance.value.toString
       ))("### Debit completed"))
-    } yield updated_account
+    } yield updatedAccount
 
   def credit(id: String, amount: BigDecimal): EitherT[IO, DomainError, Account] =
     for {

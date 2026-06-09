@@ -3,13 +3,17 @@ package com.httpService.http
 import cats.effect.IO
 import com.httpService.domain.Models.DomainError.*
 import com.httpService.domain.Models.{Account, DomainError}
-import io.circe.generic.auto.*
-import org.http4s.*
-import org.http4s.circe.CirceEntityCodec.*
+import io.circe.generic.auto.deriveEncoder
+import org.http4s.Response
+import org.http4s.circe.CirceEntityCodec.circeEntityEncoder
 import org.http4s.dsl.io.*
 import org.typelevel.log4cats.SelfAwareStructuredLogger
 import org.typelevel.log4cats.slf4j.Slf4jLogger
 
+/**
+ * Single place that owns DomainError → HTTP status mapping.
+ * All errors are currently logged at INFO regardless of severity.
+ */
 object HttpErrorMapper {
   
   val logger: SelfAwareStructuredLogger[IO] = Slf4jLogger.getLogger[IO]
@@ -30,7 +34,7 @@ object HttpErrorMapper {
         case TechnicalFailure(e) => InternalServerError(ErrorResponse(
           error = "TechnicalFailure", message = e))
         case ConcurrentModification(id) => Conflict(ErrorResponse(
-          error = "ConcurrentModification", message = s"Account $id was modified concurently"))
+          error = "ConcurrentModification", message = s"Account $id was modified concurrently"))
       }
     )
     

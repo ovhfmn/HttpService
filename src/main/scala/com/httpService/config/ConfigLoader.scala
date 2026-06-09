@@ -1,11 +1,11 @@
 package com.httpService.config
 
-import pureconfig.*
 import cats.effect.IO
-import pureconfig.generic.derivation.default.*
-import pureconfig.generic.*
-import scala.deriving.Mirror
+import pureconfig.ConfigSource
 
+/** 
+ * Reads from the `"app"` key in `application.conf` 
+ */
 object ConfigLoader {
   def load: IO[AppConfig] =
     IO.blocking {

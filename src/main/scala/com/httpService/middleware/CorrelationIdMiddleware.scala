@@ -8,6 +8,15 @@ import org.slf4j.MDC
 import java.util.UUID
 import scala.language.postfixOps
 
+/**
+ * Reads `X-Correlation-ID` from the request, or generates a UUID if absent.
+ * Writes it to the SLF4J MDC for the duration of the request, then echoes it
+ * in the response header.
+ *
+ * Caveat: MDC is ThreadLocal-backed. Under Cats Effect 3's work-stealing
+ * scheduler, the MDC value may not be visible on threads handling subsequent
+ * steps of the same fiber.
+ */
 object CorrelationIdMiddleware {
 
   private val CorrelationIdHeader = "X-Correlation-ID"

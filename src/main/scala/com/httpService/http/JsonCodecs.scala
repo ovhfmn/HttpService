@@ -7,6 +7,7 @@ import org.http4s.EntityDecoder
 import org.http4s.circe.jsonOf
 
 
+/** http4s [[EntityDecoder]] instances for all inbound request body types. */
 class JsonCodecs {
 
   given EntityDecoder[IO, DebitRequest] =

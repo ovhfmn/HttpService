@@ -1,15 +1,28 @@
 package com.httpService.repository
 
 import cats.effect.IO
-import cats.syntax.applicative.*
-import cats.syntax.applicativeError.*
-import cats.syntax.functor.*
+import cats.effect.IO.none
+import cats.syntax.applicative.catsSyntaxApplicativeId
+import cats.syntax.applicativeError.catsSyntaxApplicativeErrorId
+import cats.syntax.functor.toFunctorOps
 import com.httpService.domain.Models.AccountId.AccountId
 import com.httpService.domain.Models.DomainError.ConcurrentModification
 import com.httpService.domain.Models.{Account, AccountId, Balance}
 import com.httpService.repository.AccountRepository
 import doobie.implicits.{toConnectionIOOps, toSqlInterpolator}
 import doobie.{ConnectionIO, Transactor}
+
+/**
+ * Doobie-backed PostgreSQL implementation of [[AccountRepository]].
+ *
+ * All SQL operations return [[doobie.ConnectionIO]] programs and must be
+ * composed and executed via [[inTransaction]] to participate in a transaction.
+ *
+ * Optimistic locking is implemented in [[updateC]] via a `WHERE version = ?`
+ * predicate; zero affected rows signals a concurrent modification.
+ *
+ * @param xa The Doobie [[Transactor]] used to run `ConnectionIO` programs against PostgreSQL.
+ */
 
 class PostgresAccountRepository(xa: Transactor[IO]) extends AccountRepository {
 

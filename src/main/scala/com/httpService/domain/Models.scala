@@ -4,6 +4,9 @@ import com.httpService.domain.Models.AccountId.AccountId
 
 object Models {
 
+  /**
+   * Construction only through [[AccountId.from]], rejects blank strings.
+   */
   object AccountId {
     opaque type AccountId = String
 
@@ -15,6 +18,10 @@ object Models {
       def value: String = id
   }
 
+
+  /**
+   * Strictly positive. Zero and negative values rejected by [[Money.from]].
+   */
   opaque type Money = BigDecimal
   object Money {
 
@@ -26,10 +33,14 @@ object Models {
 
       def add(other: Money): Money = m + other
       def subtract(other: Money): Money = m - other
-      def lessThen(other: Money): Boolean = m < other
+      def lessThan(other: Money): Boolean = m < other
       def value: BigDecimal = m
   }
 
+  /**
+   * Zero is valid (empty account).
+   * Negative values rejected by [[Balance.from]].
+   */
   opaque type Balance = BigDecimal
   object Balance {
 
@@ -45,11 +56,14 @@ object Models {
         if (result < 0) Left(DomainError.InsufficientFunds(m.value))
         else Right(result)
 
-      def lessThen(m: Money): Boolean = b < m
+      def lessThan(m: Money): Boolean = b < m
 
       def value: BigDecimal = b
   }
 
+  /**
+   * @param version Optimistic-locking counter. Incremented on every successful update in the DB.
+   */
   final case class Account(
                             id: AccountId,
                             balance: Balance,
@@ -68,6 +82,7 @@ object Models {
 
     final case class InvalidAmount(value: BigDecimal) extends DomainError
 
+    /** Wraps unexpected infrastructure errors. */
     final case class TechnicalFailure(msg: String) extends DomainError
     
     final case class ConcurrentModification(id: String) extends DomainError

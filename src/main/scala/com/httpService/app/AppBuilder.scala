@@ -11,6 +11,10 @@ import com.httpService.config.ConfigLoader
 import com.httpService.kafka.EventPublisher
 import com.httpService.middleware.CorrelationIdMiddleware
 
+/**
+ * Resources are released in reverse acquisition order on shutdown:
+ * Kafka producer → transactor → (config needs no release).
+ */
 object AppBuilder {
 
   def build: Resource[IO, (HttpApp[IO], AppConfig)] =

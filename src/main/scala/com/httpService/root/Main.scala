@@ -5,6 +5,10 @@ import com.comcast.ip4s.{Host, Port, host, port}
 import com.httpService.app.AppBuilder
 import org.http4s.ember.server.EmberServerBuilder
 
+/**
+ * Delegates assembly to [[AppBuilder]], then blocks on the Ember server.
+ * All resources are released on JVM shutdown.
+ */
 object Main extends IOApp.Simple {
 
   val run: IO[Unit] =

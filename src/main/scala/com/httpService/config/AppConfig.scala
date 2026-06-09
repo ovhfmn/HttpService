@@ -1,8 +1,12 @@
 package com.httpService.config
 
 import pureconfig.ConfigReader
-import pureconfig.generic.derivation.default.*
+import pureconfig.generic.derivation.default.derived
 
+/**
+ * @param server HTTP server binding settings
+ * @param db     Database connection settings
+ */
 final case class AppConfig(
     server: ServerConfig,
     db: DbConfig
