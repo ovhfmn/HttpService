@@ -16,7 +16,7 @@ import org.typelevel.log4cats.slf4j.Slf4jLogger
  */
 object HttpErrorMapper {
   
-  val logger: SelfAwareStructuredLogger[IO] = Slf4jLogger.getLogger[IO]
+  private val logger: SelfAwareStructuredLogger[IO] = Slf4jLogger.getLogger[IO]
   
   def toResponse(error: DomainError): IO[Response[IO]] =
     logger.info(s"[ERROR] $error") *> (

@@ -9,13 +9,9 @@ object AccountDomainService {
    * Returns [[DomainError.InsufficientFunds]] if balance would go negative.
    */
   def debit(account: Account, amount: Money): Either[DomainError, Account] =
-    if (account.balance.lessThan(amount))
-      Left(DomainError.InsufficientFunds(amount.value))
-    else
-      account.balance subtract amount match
-        case Left(_) => Left(DomainError.InsufficientFunds(amount.value))
-        case Right(newBalance) =>
-          Right(account.copy(balance = newBalance))
+    account.balance subtract amount match
+      case Left(_) => Left(DomainError.InsufficientFunds(amount.value))
+      case Right(newBalance) => Right(account.copy(balance = newBalance))
 
   /**
    * Always succeeds. Returns `Either` only for call-site uniformity with [[debit]].

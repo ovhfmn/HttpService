@@ -23,7 +23,7 @@ import org.typelevel.log4cats.slf4j.Slf4jLogger
  */
 class AccountService(private val repo: AccountRepository) {
 
-  val logger: SelfAwareStructuredLogger[IO] = Slf4jLogger.getLogger[IO]
+  private val logger: SelfAwareStructuredLogger[IO] = Slf4jLogger.getLogger[IO]
 
   def create(id: String, balance: BigDecimal): EitherT[IO, DomainError, Account] =
     for {
