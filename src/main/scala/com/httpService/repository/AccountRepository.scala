@@ -2,7 +2,7 @@ package com.httpService.repository
 
 import cats.effect.IO
 import com.httpService.domain.Models.Account
-import com.httpService.domain.Models.AccountId.AccountId
+import com.httpService.domain.Models.AccountId
 import doobie.ConnectionIO
 
 /**

@@ -6,7 +6,7 @@ import com.httpService.domain.Models.{Account, DomainError}
 import io.circe.generic.auto.deriveEncoder
 import org.http4s.Response
 import org.http4s.circe.CirceEntityCodec.circeEntityEncoder
-import org.http4s.dsl.io.*
+import org.http4s.dsl.Http4sDsl
 import org.typelevel.log4cats.SelfAwareStructuredLogger
 import org.typelevel.log4cats.slf4j.Slf4jLogger
 
@@ -14,7 +14,7 @@ import org.typelevel.log4cats.slf4j.Slf4jLogger
  * Single place that owns DomainError → HTTP status mapping.
  * All errors are currently logged at INFO regardless of severity.
  */
-object HttpErrorMapper {
+object HttpErrorMapper extends Http4sDsl[IO] {
   
   private val logger: SelfAwareStructuredLogger[IO] = Slf4jLogger.getLogger[IO]
   

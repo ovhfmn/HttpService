@@ -2,13 +2,12 @@ package com.httpService.service
 
 import cats.data.EitherT
 import cats.effect.IO
-import cats.syntax.all.*
+import cats.syntax.applicative.catsSyntaxApplicativeId
+import cats.syntax.applicativeError.catsSyntaxApplicativeErrorId
 import com.httpService.domain.AccountDomainService
 import com.httpService.domain.Models.*
-import com.httpService.domain.Models.AccountId.AccountId
 import com.httpService.repository.{AccountRepository, DomainException}
 import doobie.ConnectionIO
-//import doobie.implicits.*
 import org.typelevel.log4cats.SelfAwareStructuredLogger
 import org.typelevel.log4cats.slf4j.Slf4jLogger
 
@@ -25,12 +24,13 @@ class AccountService(private val repo: AccountRepository) {
 
   private val logger: SelfAwareStructuredLogger[IO] = Slf4jLogger.getLogger[IO]
 
-  def create(id: String, balance: BigDecimal): EitherT[IO, DomainError, Account] =
+  def create(id: String, balance: BigDecimal, overdraftLimit: BigDecimal): EitherT[IO, DomainError, Account] =
     for {
       _ <- EitherT.liftF(logger.info(Map(
         "action" -> "CREATE",
         "id" -> id,
-        "amount" -> balance.toString
+        "amount" -> balance.toString,
+        "overdraftimit" -> overdraftLimit.toString
       ))("### Account create initiated"))
 
       accountId <- EitherT.fromEither[IO](AccountId.from(id)
@@ -39,8 +39,11 @@ class AccountService(private val repo: AccountRepository) {
       validatedBalance <- EitherT.fromEither[IO](Balance.from(balance)
         .left.map(_ => DomainError.InvalidAmount(balance)))
 
+      overdraftLimit <- EitherT.fromEither[IO](OverdraftLimit.from(overdraftLimit)
+        .left.map(_ => DomainError.InvalidAmount(balance)))
+
       account <- EitherT(
-        repo.inTransaction(createTx(accountId, validatedBalance)).attempt.map {
+        repo.inTransaction(createTx(accountId, validatedBalance, overdraftLimit)).attempt.map {
           case Right(v) => Right(v)
           case Left(DomainException(err)) => Left(err)
           case Left(e) => Left(DomainError.TechnicalFailure(e.getMessage))
@@ -54,7 +57,7 @@ class AccountService(private val repo: AccountRepository) {
       ))("### Account created"))
     } yield account
 
-  private def createTx(accountId: AccountId, balance: Balance): ConnectionIO[Account] =
+  private def createTx(accountId: AccountId, balance: Balance, overdraftLimit: OverdraftLimit): ConnectionIO[Account] =
     for {
       existing <- repo.findC(accountId)
 
@@ -65,7 +68,7 @@ class AccountService(private val repo: AccountRepository) {
           ().pure[ConnectionIO]
       }
 
-      account = Account(accountId, balance)
+      account = Account(accountId, balance, overdraftLimit)
 
       _ <- repo.createC(account)
 

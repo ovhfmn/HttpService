@@ -1,13 +1,11 @@
 package com.httpService.repository
 
 import cats.effect.IO
-import cats.effect.IO.none
 import cats.syntax.applicative.catsSyntaxApplicativeId
 import cats.syntax.applicativeError.catsSyntaxApplicativeErrorId
 import cats.syntax.functor.toFunctorOps
-import com.httpService.domain.Models.AccountId.AccountId
 import com.httpService.domain.Models.DomainError.ConcurrentModification
-import com.httpService.domain.Models.{Account, AccountId, Balance}
+import com.httpService.domain.Models.{Account, AccountId, Balance, OverdraftLimit}
 import com.httpService.repository.AccountRepository
 import doobie.implicits.{toConnectionIOOps, toSqlInterpolator}
 import doobie.{ConnectionIO, Transactor}
@@ -28,24 +26,25 @@ class PostgresAccountRepository(xa: Transactor[IO]) extends AccountRepository {
 
     override def createC(account: Account): ConnectionIO[Unit] =
       sql"""
-             INSERT INTO accounts (id, balance)
-             VALUES (${account.id.value}, ${account.balance.value})
+             INSERT INTO accounts (id, balance, overdraft_limit)
+             VALUES (${account.id.value}, ${account.balance.value}, ${account.overdraftLimit.value})
            """.update.run.void
 
     override def findC(id: AccountId): ConnectionIO[Option[Account]] = {
       sql"""
-         SELECT id, balance, version
+         SELECT id, balance, overdraft_limit, version
          FROM accounts
          WHERE id = ${id.value}
        """
-        .query[(String,BigDecimal,Long)]
+        .query[(String, BigDecimal, BigDecimal, Long)]
         .option
         .map(_.flatMap{
-          case (id, balance, v) =>
+          case (id, balance, overdraftLimit, v) =>
             for {
               accId <- AccountId.from(id).toOption
-              balance <- Balance.from(balance).toOption
-            } yield Account(accId, balance, v)
+              bal   <- Balance.from(balance).toOption
+              limit <- OverdraftLimit.from(overdraftLimit).toOption
+            } yield Account(accId, bal, limit, v)
         })
     }
 

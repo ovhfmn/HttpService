@@ -9,7 +9,7 @@ import com.httpService.service.AccountService
 import io.circe.generic.auto.deriveDecoder
 import org.http4s.HttpRoutes
 import org.http4s.circe.CirceEntityCodec.given
-import org.http4s.dsl.io.*
+import org.http4s.dsl.Http4sDsl
 
 import java.time.Instant
 import java.util.UUID
@@ -18,7 +18,7 @@ import java.util.UUID
  * Note: the Kafka publish happens after the DB transaction commits.
  * A publish failure does not roll back the committed state.
  */
-class AccountRoutes(service: AccountService, publisher: EventPublisher) {
+class AccountRoutes(service: AccountService, publisher: EventPublisher) extends Http4sDsl[IO] {
   val routes: HttpRoutes[IO] = HttpRoutes.of[IO] {
     case GET -> Root / "health" =>
       Ok("OK")
@@ -46,7 +46,7 @@ class AccountRoutes(service: AccountService, publisher: EventPublisher) {
     case req @ POST -> Root / "accounts" =>
       (for {
         body <- EitherT.liftF(req.as[CreateAccountRequest])
-        account <- service.create(body.id, body.balance)
+        account <- service.create(body.id, body.balance, body.overdraftLimit)
 
         _ <- EitherT.liftF(publisher.publish(
           AccountEvent.AccountCreated(body.id, UUID.randomUUID(), Instant.now(), body.balance)
