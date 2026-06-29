@@ -9,7 +9,7 @@ object AccountDomainService {
    * Returns [[DomainError.InsufficientFunds]] if balance would go negative.
    */
   def debit(account: Account, amount: Money): Either[DomainError, Account] =
-    account.balance subtract amount match
+    account.balance.subtract(amount, account.overdraftLimit) match
       case Left(_) => Left(DomainError.InsufficientFunds(amount.value))
       case Right(newBalance) => Right(account.copy(balance = newBalance))
 

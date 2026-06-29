@@ -1,14 +1,12 @@
 package com.httpService.domain
 
-import com.httpService.domain.Models.AccountId.AccountId
-
 object Models {
 
   /**
    * Construction only through [[AccountId.from]], rejects blank strings.
    */
+  opaque type AccountId = String
   object AccountId {
-    opaque type AccountId = String
 
     def from(value: String): Either[String, AccountId] =
       if (value.trim.isEmpty) Left("AccountId cannot be empty")
@@ -45,20 +43,36 @@ object Models {
   object Balance {
 
     def from(value: BigDecimal): Either[String, Balance] =
-      if (value < 0) Left("Balance cannot be negative")
-      else Right(value)
+      Right(value)
 
     extension (b: Balance)
-
       def add(m: Money): Balance = b + m
-      def subtract(m: Money): Either[DomainError, Balance] =
+
+      def subtract(m: Money, limit: OverdraftLimit): Either[DomainError, Balance] =
+        import com.httpService.domain.Models.OverdraftLimit.allow
         val result = b - m
-        if (result < 0) Left(DomainError.InsufficientFunds(m.value))
-        else Right(result)
+        if (limit.allow(result)) Right(result)
+        else Left(DomainError.InsufficientFunds(m.value))
 
       def lessThan(m: Money): Boolean = b < m
-
       def value: BigDecimal = b
+  }
+
+  /**
+   * Zero is valid — accounts with no overdraft facility.
+   * Negative values are not valid — an overdraft limit cannot be negative.
+   */
+  opaque type OverdraftLimit = BigDecimal
+  object OverdraftLimit {
+    val zero: OverdraftLimit = BigDecimal(0)
+
+    def from(value: BigDecimal): Either[String, OverdraftLimit] =
+      if (value < 0) Left("OverdraftLimit cannot be negative")
+      else Right(value)
+
+    extension (o: OverdraftLimit)
+      def value: BigDecimal = o
+      def allow(balance: BigDecimal): Boolean = balance >= -o
   }
 
   /**
@@ -67,6 +81,7 @@ object Models {
   final case class Account(
                             id: AccountId,
                             balance: Balance,
+                            overdraftLimit: OverdraftLimit = OverdraftLimit.zero,
                             version: Long = 0
                           )
 
