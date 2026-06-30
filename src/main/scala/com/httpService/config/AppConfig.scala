@@ -9,7 +9,8 @@ import pureconfig.generic.derivation.default.derived
  */
 final case class AppConfig(
     server: ServerConfig,
-    db: DbConfig
+    db: DbConfig,
+    kafka: KafkaConfig
 ) derives ConfigReader
 
 final case class ServerConfig(
@@ -22,4 +23,9 @@ final case class DbConfig(
     user: String,
     password: String,
     driver: String
+) derives ConfigReader
+
+final case class KafkaConfig(
+    broker: String,
+    topic: String
 ) derives ConfigReader

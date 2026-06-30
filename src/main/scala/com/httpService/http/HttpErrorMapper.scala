@@ -31,6 +31,8 @@ object HttpErrorMapper extends Http4sDsl[IO] {
           error = "AccountAlreadyExists", message = "Account already exists"))
         case InvalidAccountId(id) => BadRequest(ErrorResponse(
           error = "InvalidAccountId", message = s"Account id '$id' is invalid"))
+        case InvalidOverdraftLimit(_) => BadRequest(ErrorResponse(
+          error = "InvalidOverdraftLimit", message = s"Overdraft Limit is Invalid"))
         case TechnicalFailure(e) => InternalServerError(ErrorResponse(
           error = "TechnicalFailure", message = e))
         case ConcurrentModification(id) => Conflict(ErrorResponse(

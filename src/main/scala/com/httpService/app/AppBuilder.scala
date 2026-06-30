@@ -21,7 +21,7 @@ object AppBuilder {
     for {
       config    <- Resource.eval(ConfigLoader.load)
       xa        <- transactor(config)
-      publisher <- EventPublisher.resource("redpanda:29092", "account-events")
+      publisher <- EventPublisher.resource(config.kafka.broker, config.kafka.topic)
     } yield {
       val repo = new PostgresAccountRepository(xa)
       val service = new AccountService(repo)

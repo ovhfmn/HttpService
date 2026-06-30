@@ -88,18 +88,13 @@ object Models {
   sealed trait DomainError
   object DomainError {
     final case class AccountNotFound(id: String) extends DomainError
-
     final case class InvalidAccountId(id: String) extends DomainError
-
     final case class InsufficientFunds(requested: BigDecimal) extends DomainError
-
     final case class AccountAlreadyExists(id: String) extends DomainError
-
     final case class InvalidAmount(value: BigDecimal) extends DomainError
-
+    final case class InvalidOverdraftLimit(value: BigDecimal) extends DomainError
     /** Wraps unexpected infrastructure errors. */
     final case class TechnicalFailure(msg: String) extends DomainError
-    
     final case class ConcurrentModification(id: String) extends DomainError
   }
 }
