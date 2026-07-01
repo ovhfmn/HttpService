@@ -8,6 +8,7 @@ import com.httpService.domain.AccountDomainService
 import com.httpService.domain.Models.*
 import com.httpService.repository.{AccountRepository, DomainException}
 import doobie.ConnectionIO
+import doobie.implicits.toSqlInterpolator
 import org.typelevel.log4cats.SelfAwareStructuredLogger
 import org.typelevel.log4cats.slf4j.Slf4jLogger
 
@@ -15,10 +16,6 @@ import org.typelevel.log4cats.slf4j.Slf4jLogger
  * Orchestrates validation, DB transactions, and error recovery.
  * [[DomainException]] is caught from the `IO` error channel and re-raised
  * into the `EitherT` error channel.
- *
- * Caveat: [[debit]] has a bug — its `.attempt` handler matches on
- * `DomainError` directly rather than `DomainException(err)`, so all domain
- * errors from [[debitTx]] are reported as [[DomainError.TechnicalFailure]].
  */
 class AccountService(private val repo: AccountRepository) {
 
@@ -30,7 +27,7 @@ class AccountService(private val repo: AccountRepository) {
         "action" -> "CREATE",
         "id" -> id,
         "amount" -> balance.toString,
-        "overdraftimit" -> overdraftLimit.toString
+        "overdraftLimit" -> overdraftLimit.toString
       ))("### Account create initiated"))
 
       accountId <- EitherT.fromEither[IO](AccountId.from(id)
@@ -40,15 +37,9 @@ class AccountService(private val repo: AccountRepository) {
         .left.map(_ => DomainError.InvalidAmount(balance)))
 
       overdraftLimit <- EitherT.fromEither[IO](OverdraftLimit.from(overdraftLimit)
-        .left.map(_ => DomainError.InvalidAmount(balance)))
+        .left.map(_ => DomainError.InvalidOverdraftLimit(balance)))
 
-      account <- EitherT(
-        repo.inTransaction(createTx(accountId, validatedBalance, overdraftLimit)).attempt.map {
-          case Right(v) => Right(v)
-          case Left(DomainException(err)) => Left(err)
-          case Left(e) => Left(DomainError.TechnicalFailure(e.getMessage))
-        }
-      )
+      account <- runTransaction(repo.inTransaction(createTx(accountId, validatedBalance, overdraftLimit)))
 
       _ <- EitherT.liftF(logger.info(Map(
         "action" -> "CREATE",
@@ -88,20 +79,14 @@ class AccountService(private val repo: AccountRepository) {
       money <- EitherT.fromEither[IO](Money.from(amount)
         .left.map(_ => DomainError.InvalidAmount(amount)))
 
-      updatedAccount <- EitherT(
-        repo.inTransaction(debitTx(accountId, money)).attempt.map {
-          case Right(account) => Right(account)
-          case Left(DomainException(e)) => Left(e)
-          case Left(e) => Left(DomainError.TechnicalFailure(e.getMessage))
-        }
-      )
+      account <- runTransaction(repo.inTransaction(debitTx(accountId, money)))
 
       _ <- EitherT.liftF(logger.info(Map(
         "action" -> "DEBIT",
-        "id" -> updatedAccount.id.value,
-        "balance" -> updatedAccount.balance.value.toString
+        "id" -> account.id.value,
+        "balance" -> account.balance.value.toString
       ))("### Debit completed"))
-    } yield updatedAccount
+    } yield account
 
   def credit(id: String, amount: BigDecimal): EitherT[IO, DomainError, Account] =
     for {
@@ -117,13 +102,7 @@ class AccountService(private val repo: AccountRepository) {
       money <- EitherT.fromEither[IO](Money.from(amount)
         .left.map(_ => DomainError.InvalidAmount(amount)))
 
-      account <- EitherT(
-        repo.inTransaction(creditTx(accountId, money)).attempt.map {
-          case Right(v) => Right(v)
-          case Left(DomainException(err)) => Left(err)
-          case Left(e) => Left(DomainError.TechnicalFailure(e.getMessage))
-        }
-      )
+      account <- runTransaction(repo.inTransaction(creditTx(accountId, money)))
 
       _ <- EitherT.liftF(logger.info(Map(
         "action" -> "CREDIT",
@@ -169,4 +148,14 @@ class AccountService(private val repo: AccountRepository) {
       _ <- repo.updateC(updated)
 
     } yield updated
+
+  private def runTransaction[Account](io: IO[Account]): EitherT[IO, DomainError, Account] = {
+    EitherT(
+      io.attempt.map {
+        case Right(account) => Right(account)
+        case Left(DomainException(e)) => Left(e)
+        case Left(e) => Left(DomainError.TechnicalFailure("Technical Failure"))
+      }
+    )
+  }
 }
