@@ -21,7 +21,10 @@ import java.util.UUID
 class AccountRoutes(service: AccountService, publisher: EventPublisher) extends Http4sDsl[IO] {
   val routes: HttpRoutes[IO] = HttpRoutes.of[IO] {
     case GET -> Root / "health" =>
-      Ok("OK")
+      service.healthCheck.flatMap {
+        case true => Ok("OK")
+        case false => ServiceUnavailable("Service is unavailable")
+      }
 
     case req @ POST -> Root / "accounts" / id / "debit" =>
       (for {

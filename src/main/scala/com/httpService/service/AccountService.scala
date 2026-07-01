@@ -21,6 +21,10 @@ class AccountService(private val repo: AccountRepository) {
 
   private val logger: SelfAwareStructuredLogger[IO] = Slf4jLogger.getLogger[IO]
 
+  def healthCheck: IO[Boolean] = 
+    repo.inTransaction(sql"SELECT 1".query[Int].unique)
+      .attempt.map(_.isRight)
+
   def create(id: String, balance: BigDecimal, overdraftLimit: BigDecimal): EitherT[IO, DomainError, Account] =
     for {
       _ <- EitherT.liftF(logger.info(Map(
