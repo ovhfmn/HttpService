@@ -45,5 +45,10 @@ object EventPublisher:
       .resource(
         ProducerSettings[IO, String, String]
           .withBootstrapServers(broker)
+          .withProperty("enable.idempotence", "true")
+          .withProperty("acks", "all")
+          .withRetries(10)
+          .withProperty("delivery.timeout.ms", "120000")
+          .withProperty("request.timeout.ms", "30000")
       )
       .map(producer => new EventPublisher(producer, topic))
