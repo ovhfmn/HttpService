@@ -41,7 +41,7 @@ class AccountService(private val repo: AccountRepository) {
         .left.map(_ => DomainError.InvalidAmount(balance)))
 
       overdraftLimit <- EitherT.fromEither[IO](OverdraftLimit.from(overdraftLimit)
-        .left.map(_ => DomainError.InvalidOverdraftLimit(balance)))
+        .left.map(_ => DomainError.InvalidOverdraftLimit(overdraftLimit)))
 
       account <- runTransaction(repo.inTransaction(createTx(accountId, validatedBalance, overdraftLimit)))
 

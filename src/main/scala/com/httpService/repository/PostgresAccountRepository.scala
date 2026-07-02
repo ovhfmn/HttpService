@@ -38,13 +38,14 @@ class PostgresAccountRepository(xa: Transactor[IO]) extends AccountRepository {
        """
         .query[(String, BigDecimal, BigDecimal, Long)]
         .option
-        .map(_.flatMap{
+        .map(_.map {
           case (id, balance, overdraftLimit, v) =>
-            for {
-              accId <- AccountId.from(id).toOption
-              bal   <- Balance.from(balance).toOption
-              limit <- OverdraftLimit.from(overdraftLimit).toOption
-            } yield Account(accId, bal, limit, v)
+            Account(
+              AccountId.unsafe(id),
+              Balance.unsafe(balance),
+              OverdraftLimit.unsafe(overdraftLimit),
+              v
+          )
         })
     }
 

@@ -7,10 +7,16 @@ object Models {
    */
   opaque type AccountId = String
   object AccountId {
+    private val validPattern = "^[a-zA-Z0-9]+$".r
 
     def from(value: String): Either[String, AccountId] =
-      if (value.trim.isEmpty) Left("AccountId cannot be empty")
-      else Right(value)
+      val trimmed = value.trim
+      if (trimmed.isEmpty)                      Left("AccountId cannot be empty")
+      else if (trimmed.length > 16)             Left("AccountId too long")
+      else if (!validPattern.matches(trimmed))  Left("AccountId contains invalid characters")
+      else Right(trimmed)
+
+    def unsafe(value: String): AccountId = value
 
     extension (id: AccountId)
       def value: String = id
@@ -29,9 +35,6 @@ object Models {
 
     extension (m: Money)
 
-      def add(other: Money): Money = m + other
-      def subtract(other: Money): Money = m - other
-      def lessThan(other: Money): Boolean = m < other
       def value: BigDecimal = m
   }
 
@@ -43,7 +46,10 @@ object Models {
   object Balance {
 
     def from(value: BigDecimal): Either[String, Balance] =
-      Right(value)
+      if (value < 0) Left("Initial balance cannot be negative")
+      else Right(value)
+
+    def unsafe(value: BigDecimal): Balance = value
 
     extension (b: Balance)
       def add(m: Money): Balance = b + m
@@ -54,7 +60,6 @@ object Models {
         if (limit.allow(result)) Right(result)
         else Left(DomainError.InsufficientFunds(m.value))
 
-      def lessThan(m: Money): Boolean = b < m
       def value: BigDecimal = b
   }
 
@@ -69,6 +74,8 @@ object Models {
     def from(value: BigDecimal): Either[String, OverdraftLimit] =
       if (value < 0) Left("OverdraftLimit cannot be negative")
       else Right(value)
+
+    def unsafe(value: BigDecimal): OverdraftLimit = value
 
     extension (o: OverdraftLimit)
       def value: BigDecimal = o
